@@ -2,15 +2,20 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-27 21:23:48
+ * @Last Modified time: 2018-03-27 21:47:58
  */
 let canvas = document.querySelector('#canvas');
 let stats;
 
-/* global THREE, Stats*/
+/* global THREE, Stats, Detector*/
 let renderer, camera, scene, light;
 
 let axisHelper, gridHelper, controls;
+
+// 兼容性检测
+if ( ! Detector.webgl ) {
+    Detector.addGetWebGLMessage(); 
+}
 /**
  * 初始化renderer
  * 
