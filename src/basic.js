@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-27 18:33:25
+ * @Last Modified time: 2018-03-27 18:38:59
  */
 
 //创建场景
@@ -27,21 +27,26 @@ var renderer = new THREE.WebGLRenderer({
     antialias: true,
 });
 
-//盒子模型（BoxGeometry），这是一个包含立方体所有顶点和填充面的对象。
+//定义线的基本材料，我们可以使用LineBasicMaterial（实线材料）和LineDashedMaterial（虚线材料）
+let material = new THREE.LineBasicMaterial({
+    color: 0xffff00
+});
 
-var geometry = new THREE.BoxGeometry(1, 5, 1);
+// 设置具有几何顶点的几何（Geometry）或缓冲区几何（BufferGeometry）设置顶点位置，
+// 看名字就知道了，一个是直接将数据保存在js里面的，另一个是保存在WebGL缓冲区内的，
+// 而且肯定保存到WebGL缓冲区内的效率更高
 
-//使用网孔基础材料（MeshBasicMaterial）进行着色器，这里只绘制了一个绿色
+let geometry = new THREE.Geometry();
+geometry.vertices.push(new THREE.Vector3(-10, 0, 0));
+geometry.vertices.push(new THREE.Vector3(0, 10, 0));
+geometry.vertices.push(new THREE.Vector3(0, 0, 10));
 
-var material = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+//使用Line方法将线初始化
+let line = new THREE.Line(geometry, material);
 
-//使用网孔(Mesh)来承载几何模型
+//将线段添加到场景当中
 
-var cube = new THREE.Mesh(geometry, material);
-
-//将模型添加到场景当中
-
-scene.add(cube);
+scene.add(line);
 
 //将相机沿z轴偏移5
 
@@ -50,15 +55,15 @@ camera.position.z = 5;
 
 
 // 轴辅助
-var axisHelper = new THREE.AxesHelper(200)
-scene.add(axisHelper)
+var axisHelper = new THREE.AxesHelper(200);
+scene.add(axisHelper);
 
 // 辅助网格
-var gridHelper = new THREE.GridHelper(320, 32)
-scene.add(gridHelper)
+var gridHelper = new THREE.GridHelper(320, 32);
+scene.add(gridHelper);
 
 // 随意旋转拖动
-var controls = new THREE.OrbitControls(camera, renderer.domElement)
+var controls = new THREE.OrbitControls(camera, renderer.domElement);
 // 启用阻尼惯性，更加真实的感觉
 controls.enableDamping = true;
 controls.dampingFactor = 0.25;
@@ -80,9 +85,9 @@ var animate = function () {
 
     //每次调用模型的沿xy轴旋转0.01
 
-    cube.rotation.x += 0.01;
+    // cube.rotation.x += 0.01;
 
-    cube.rotation.y += 0.01;
+    // cube.rotation.y += 0.01;
 
     //使用渲染器把场景和相机都渲染出来
 
