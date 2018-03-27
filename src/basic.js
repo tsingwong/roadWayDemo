@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-27 20:56:44
+ * @Last Modified time: 2018-03-27 21:23:48
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -165,6 +165,7 @@ function initAssist() {
     controls.dampingFactor = 0.25;
     // 旋转的速度
     controls.rotateSpeed = 0.35;
+    controls.autoRotate = true;
 
     stats = new Stats();
     stats.setMode(0);
@@ -172,6 +173,10 @@ function initAssist() {
     stats.domElement.style.left = '5px';
     stats.domElement.style.top = '5px';
     document.body.appendChild(stats.domElement);
+}
+
+function render() {
+    renderer.render(scene, camera);
 }
 
 
@@ -183,16 +188,10 @@ function animate() {
     stats.begin();
     requestAnimationFrame(animate);
 
-    let timer = Date.now() * 0.0001;
-    camera.position.x = Math.cos( timer ) * 800;
-    camera.position.z = Math.sin( timer ) * 800;
-    camera.lookAt( scene.position );
-    for ( var i = 0, l = scene.children.length; i < l; i ++ ) {
-        var object = scene.children[ i ];
-        object.rotation.x = timer * 5;
-        object.rotation.y = timer * 2.5;
-    }
-    renderer.render(scene, camera);
+
+    render();
+    controls.update();
+    
     stats.end();
 
 }
@@ -209,24 +208,11 @@ function draw() {
 draw();
 
 
-//生成随机颜色
-
-function randomColor() {
-
-    var arrHex = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'],
-
-        strHex = '0x',
-
-        index;
-
-    for (var i = 0; i < 6; i++) {
-
-        index = Math.round(Math.random() * 15);
-
-        strHex += arrHex[index];
-
-    }
-
-    return eval(strHex);
-
+//窗口变动触发的函数
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    render();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 }
+
