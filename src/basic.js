@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-27 18:38:59
+ * @Last Modified time: 2018-03-27 18:41:41
  */
 
 //创建场景
@@ -36,10 +36,11 @@ let material = new THREE.LineBasicMaterial({
 // 看名字就知道了，一个是直接将数据保存在js里面的，另一个是保存在WebGL缓冲区内的，
 // 而且肯定保存到WebGL缓冲区内的效率更高
 
-let geometry = new THREE.Geometry();
-geometry.vertices.push(new THREE.Vector3(-10, 0, 0));
-geometry.vertices.push(new THREE.Vector3(0, 10, 0));
-geometry.vertices.push(new THREE.Vector3(0, 0, 10));
+let geometry = new THREE.BufferGeometry();
+var vertices = new Float32Array([-1.0, -1.0, 1.0,1.0, -1.0, 1.0,1.0, 1.0, 1.0,
+    1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0
+]);
+geometry.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
 
 //使用Line方法将线初始化
 let line = new THREE.Line(geometry, material);
@@ -96,5 +97,3 @@ var animate = function () {
 };
 
 animate();
-
-
