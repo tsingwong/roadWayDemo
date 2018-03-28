@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 21:58:14
+ * @Last Modified time: 2018-03-29 07:51:25
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -21,6 +21,8 @@ let datGui, gui, settings;
 let spGroup, tubeMesh;
 
 let text1, text2;
+
+let cloud;
 
 // 兼容性检测
 if (!Detector.webgl) {
@@ -105,7 +107,7 @@ function initModel() {
         }
     }
     //实例化THREE.PointCloud
-    var cloud = new THREE.Points(geometry, material);
+    cloud = new THREE.Points(geometry, material);
     scene.add(cloud);
 }
 
@@ -158,75 +160,38 @@ function initAssist() {
 function initDatGui() {
     //声明一个保存需求修改的相关数据的对象
     gui = {
-        size: 90,
-        height: 90,
-        bevelThickness: 2,
-        bevelSize: 0.5,
-        bevelEnabled: true,
-        bevelSegments: 3,
-        curveSegments: 12,
-        steps: 1,
-        fontName: 'helvetiker',
-        fontWeight: 'bold',
-        weight: 'normal',
-        font: null,
-        style: 'italics',
-        changeFont: function () {
-            //创建loader进行字体加载，供后面的模型使用
-            var loader = new THREE.FontLoader();
-            loader.load('../static/js/lib/MicrosoftYaHei_Regular.json', function (response) {
-                gui.font = response;
-                gui.asGeom();
-            });
-        },
-        asGeom: function () {
-            // 删除旧的模型
-            scene.remove(text1);
-            scene.remove(text2);
-            // 创建一个新的
-            var options = {
-                size: gui.size,
-                height: gui.height,
-                weight: gui.weight,
-                font: gui.font,
-                amount: gui.amount,
-                bevelThickness: gui.bevelThickness,
-                bevelSize: gui.bevelSize,
-                bevelSegments: gui.bevelSegments,
-                bevelEnabled: gui.bevelEnabled,
-                curveSegments: gui.curveSegments,
-                steps: gui.steps
-            };
-            shape = createMesh(new THREE.ExtrudeGeometry(drawShape(), options));
-            scene.add(shape);
+        size: 4,
+        transparent: true,
+        opacity: .6,
+        vertexColors: true,
+        color: 0xffffff,
+        sizeAttenuation: true,
+        rotateSystem: false,
+        redraw: function () {
+            if (cloud) {
+                scene.remove(cloud);
+            }
+            createParticles(gui.size, gui.transparent, gui.opacity, gui.vertexColors, gui.sizeAttenuation, gui.color);
+            controls.autoRotate = gui.rotateSystem;
         }
     };
     let datGui = new dat.GUI();
-    datGui.add(gui, 'size', 0, 200)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'height', 0, 200)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'fontName', ['gentilis', 'helvetiker', 'optimer'])
-        .onChange(gui.changeFont);
-    datGui.add(gui, 'fontWeight', ['regular', 'bold'])
-        .onChange(gui.changeFont);
-    datGui.add(gui, 'bevelThickness', 0, 10)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'bevelSize', 0, 10)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'bevelSegments', 0, 30)
-        .step(1)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'bevelEnabled')
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'curveSegments', 1, 30)
-        .step(1)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'steps', 1, 5)
-        .step(1)
-        .onChange(gui.asGeom);
+    datGui.add(gui, 'size', 0, 10)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'transparent')
+        .onChange(gui.redraw);
+    datGui.add(gui, 'opacity', 0, 1)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'vertexColors')
+        .onChange(gui.redraw);
+    datGui.addColor(gui, 'color')
+        .onChange(gui.redraw);
+    datGui.add(gui, 'sizeAttenuation')
+        .onChange(gui.redraw);
+    datGui.add(gui, 'rotateSystem')
+        .onChange(gui.redraw);
 
-    gui.changeFont();
+    gui.redraw();
 }
 
 
@@ -257,7 +222,7 @@ function draw() {
     initLight();
     initAssist();
     initModel();
-    // initDatGui();
+    initDatGui();
     animate();
 
     window.onresize = onWindowResize;
@@ -317,10 +282,31 @@ function createMesh(geom) {
     return mesh;
 }
 
-function drawShape() {
-    let svgString = document.querySelector('#batman-path')
-        .getAttribute('d');
-    // eslint-disable-next-line
-    let shape = transformSVGPathExposed(svgString);
-    return shape;
+function createParticles(size, transparent, opacity, vertexColors, sizeAttenuation, color) {
+    let geom = new THREE.Geometry();
+    //样式化粒子的THREE.PointCloudMaterial材质
+    var material = new THREE.PointsMaterial({
+        size: size,
+        transparent: transparent,
+        opacity: opacity,
+        vertexColors: vertexColors,
+        sizeAttenuation: sizeAttenuation,
+        color: color
+    });
+
+    var range = 500;
+    for (var i = 0; i < 15000; i++) {
+        var particle = new THREE.Vector3(
+            Math.random() * range - range / 2, 
+            Math.random() * range - range / 2, 
+            Math.random() * range - range / 2);
+        geom.vertices.push(particle);
+        let color = new THREE.Color(+randomColor());
+        //.setHSL ( h, s, l ) h — 色调值在0.0和1.0之间 s — 饱和值在0.0和1.0之间 l — 亮度值在0.0和1.0之间。 使用HSL设置颜色。
+        //随机当前每个粒子的亮度
+        color.setHSL(color.getHSL({ h: 0, s: 0, l: 0 }).h, color.getHSL({ h: 0, s: 0, l: 0 }).s, Math.random() * color.getHSL({ h: 0, s: 0, l: 0 }).l);
+        geom.colors.push(color);
+    }
+    cloud = new THREE.Points(geom, material);
+    scene.add(cloud); 
 }
