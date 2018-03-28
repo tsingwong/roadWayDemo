@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 21:19:06
+ * @Last Modified time: 2018-03-28 21:22:53
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -170,11 +170,11 @@ function initDatGui() {
         bevelSegments: 3,
         curveSegments: 12,
         steps: 1,
-        fontName: "helvetiker",
-        fontWeight: "bold",
-        weight: "normal",
+        fontName: 'helvetiker',
+        fontWeight: 'bold',
+        weight: 'normal',
         font: null,
-        style: "italics",
+        style: 'italics',
         changeFont: function () {
             //创建loader进行字体加载，供后面的模型使用
             var loader = new THREE.FontLoader();
@@ -324,6 +324,7 @@ function createMesh(geom) {
 function drawShape() {
     let svgString = document.querySelector('#batman-path')
         .getAttribute('d');
+        // eslint-disable-next-line
     let shape = transformSVGPathExposed(svgString);
     return shape;
 }
