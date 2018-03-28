@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 10:08:23
+ * @Last Modified time: 2018-03-28 10:46:22
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -13,6 +13,8 @@ let renderer, camera, scene, ambientLight, pointLight, directionalLight;
 let axisHelper, gridHelper, controls;
 
 let sphere, cube;
+
+let sphereMaterial;
 
 let datGui, gui, settings;
 
@@ -89,23 +91,23 @@ function initLight() {
     directionalLight.castShadow = true;
     scene.add(directionalLight);
 
-    let debug = new THREE.CameraHelper(directionalLight.shadow.camera);
+    // let debug = new THREE.CameraHelper(directionalLight.shadow.camera);
 
-    scene.add(debug);
+    // scene.add(debug);
 }
 /**
  * 初始化模型
  * 
  */
 function initModel() {
-
-    //立方体
-    // let cubeGeometry = new THREE.CubeGeometry(10, 10, 8);
-    // let cubeMaterial = new THREE.MeshLambertMaterial({ color: 0x00ffff });
-    // cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-    // cube.position.x = 25;
-    // cube.position.y = 5;
-    // cube.position.z = -5;
+    let sphereGeometry = new THREE.SphereGeometry(10, 32, 32);
+    sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xeeefff });
+    sphereMaterial.needsUpdate = true;
+    sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphere.position.set(-20, 20, 0);
+    sphere.castShadow = true;
+    
+    scene.add(sphere);
 
 
     // 创建一个立方体
@@ -212,49 +214,65 @@ function initAssist() {
 
 function initDatGui() {
     gui = {
-        ambientLight: '#111111',
-        changeAmbient: function () {
-            // let flag = false;
-            // scene.children.find((element, index, arr) => {
-            //     if (element === ambientLight) {
-            //         flag = true;
-            //     }
-            // });
-            // flag ? scene.remove(ambientLight) : scene.add(ambientLight);
-            ambientLight.visible = !ambientLight.visible;
-        },
-        pointLight: '#111111',
-        changePoint: function () {
-            pointLight.visible = !pointLight.visible;
-        },
-        lightY: 60, //灯光y轴的位置
-        cubeX: 5, //立方体的x轴位置
-        cubeY: 10, //立方体的x轴位置
-        cubeZ: -5 //立方体的z轴的位置
+        opacity: sphereMaterial.opacity,
+        transparent: sphereMaterial.transparent,
+        overdraw: sphereMaterial.overdraw,
+        visible: sphereMaterial.visible,
+        side: 'front',
+        color: sphereMaterial.color.getStyle(),
+        wireframe: sphereMaterial.wireframe,
+        wireframeLinewidth: sphereMaterial.wireframeLinewidth,
+        wireFrameLineJoin: sphereMaterial.wireframeLinejoin,
     };
 
     let datGui = new dat.GUI();
-    datGui.addColor(gui, 'ambientLight')
+
+    datGui.add(gui, 'opacity', 0, 1)
         .onChange(function (e) {
-            ambientLight.color = new THREE.Color(e);
+
+            sphereMaterial.opacity = e;
 
         });
-    datGui.add(gui, 'changeAmbient');
-
-    datGui.addColor(gui, 'pointLight')
+    datGui.add(gui, 'transparent')
         .onChange(function (e) {
-            pointLight.color = new THREE.Color(e);
+            sphereMaterial.transparent = e;
 
         });
-    datGui.add(gui, 'changePoint');
 
-
-    datGui.add(gui, 'lightY', 0, 100);
-    datGui.add(gui, 'cubeX', -30, 30);
-    datGui.add(gui, 'cubeY', -30, 30);
-    datGui.add(gui, 'cubeZ', -30, 30);
+    datGui.add(gui, 'wireframe')
+        .onChange(function (e) {
+            sphereMaterial.wireframe = e;
+        });
+    datGui.add(gui, 'wireframeLinewidth', 0, 20)
+        .onChange(function (e) {
+            sphereMaterial.wireframeLinewidth = e;
+        });
+    datGui.add(gui, 'visible')
+        .onChange(function (e) {
+            sphereMaterial.visible = e;
+        });
+    datGui.add(gui, 'side', ['front', 'back', 'double'])
+        .onChange(function (e) {
+            switch (e) {
+                case 'front':
+                    sphereMaterial.side = THREE.FrontSide;
+                    break;
+                case 'back':
+                    sphereMaterial.side = THREE.BackSide;
+                    break;
+                case 'double':
+                    sphereMaterial.side = THREE.DoubleSide;
+                    break;
+            }
+            
+        });
+    datGui.addColor(gui, 'color')
+        .onChange(function (e) {
+            sphereMaterial.color.setStyle(e);
+        });
 
 }
+
 
 function render() {
     renderer.render(scene, camera);
@@ -268,10 +286,6 @@ function render() {
 function animate() {
     stats.begin();
 
-
-    directionalLight.position.y = gui.lightY;
-    cube.position.set(gui.cubeX, gui.cubeY, gui.cubeZ);
-
     render();
     controls.update();
     requestAnimationFrame(animate);
@@ -281,13 +295,13 @@ function animate() {
 }
 
 function draw() {
-    initDatGui();
     initRender();
     initScene();
     initCamera();
     initLight();
     initAssist();
     initModel();
+    initDatGui();
     animate();
 
     window.onresize = onWindowResize;
