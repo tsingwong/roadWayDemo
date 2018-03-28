@@ -2,19 +2,23 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-27 23:11:24
+ * @Last Modified time: 2018-03-28 08:07:32
  */
 let canvas = document.querySelector('#canvas');
 let stats;
 
-/* global THREE, Stats, Detector*/
+/* global THREE, Stats, Detector, dat*/
 let renderer, camera, scene, light;
 
 let axisHelper, gridHelper, controls;
 
+let sphere, cube;
+
+let datGui, gui;
+
 // 兼容性检测
-if ( ! Detector.webgl ) {
-    Detector.addGetWebGLMessage(); 
+if (!Detector.webgl) {
+    Detector.addGetWebGLMessage();
 }
 /**
  * 初始化renderer
@@ -26,7 +30,10 @@ function initRender() {
         // 开启抗锯齿
         antialias: true,
     });
-    renderer.setClearColor(0x000000, 1.0);
+    // 开启阴影
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
 }
 /**
  * 初始化相机
@@ -38,9 +45,9 @@ function initCamera() {
         45,
         canvas.width / canvas.height,
         1,
-        2000
+        1000
     );
-    camera.position.z = 800;
+    camera.position.set(0, 40, 100);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -56,10 +63,12 @@ function initScene() {
  */
 function initLight() {
     // 环境光
-    scene.add(new THREE.AmbientLight(0x404040));
+    scene.add(new THREE.AmbientLight(0x444444));
     // 平衡光
-    light = new THREE.DirectionalLight(0xfffff, 1.0, 0);
-    light.position.set(0, 1, 0);
+    light = new THREE.SpotLight(0xfffff);
+    light.position.set(60, 30, 0);
+    //告诉平行光需要开启阴影投射
+    light.castShadow = true;
     scene.add(light);
 }
 /**
@@ -67,25 +76,41 @@ function initLight() {
  * 
  */
 function initModel() {
-    let font;
-    let loader = new THREE.FontLoader();
-    loader.load('../static/js/lib/helvetiker_regular.typeface.json', (res) => {
-        font = new THREE.TextBufferGeometry('TsingWong', {
-            font: res,
-            size: 100,
-            height: 60
-        });
-        font.center();
-
-        // let map = new THREE.TextureLoader().load('../static/img/UV_Grid_Sm.jpg');
-        // let material = new THREE.MeshLambertMaterial({
-        //     map: map,
-        //     side: THREE.DoubleSide
-        // });
-        let material = new THREE.MeshBasicMaterial( {color: 0xffff00} )
-        let fontModel = new THREE.Mesh(font,material);
-        scene.add(fontModel);
+    let sphereGeometry = new THREE.SphereGeometry(5, 20, 20);
+    let sphereMaterial = new THREE.MeshStandardMaterial({
+        color: 0x7777ff
     });
+    sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphere.position.y = 5;
+
+    //告诉球需要投射阴影
+    sphere.castShadow = true;
+
+    scene.add(sphere);
+
+    //立方体
+    let cubeGeometry = new THREE.CubeGeometry(10, 10, 8);
+    let cubeMaterial = new THREE.MeshLambertMaterial({ color: 0x00ffff });
+    cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cube.position.x = 25;
+    cube.position.y = 5;
+    cube.position.z = -5;
+
+    //告诉立方体需要投射阴影
+    cube.castShadow = true;
+    scene.add(cube);
+
+    //底部平面
+    let planeGeometry = new THREE.PlaneGeometry(100, 100);
+    let planeMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+
+    let plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    plane.rotation.x = -0.5 * Math.PI;
+    plane.position.y = -0;
+
+    //告诉底部平面需要接收阴影
+    plane.receiveShadow = true;
+    scene.add(plane);
 }
 /**
  * 初始化辅助系统
@@ -122,6 +147,23 @@ function initAssist() {
     document.body.appendChild(stats.domElement);
 }
 
+function initDatGui() {
+    gui = {
+        lightY: 30, //灯光y轴的位置
+        sphereX: 0, //球的x轴的位置
+        sphereZ: 0, //球的z轴的位置
+        cubeX: 25, //立方体的x轴位置
+        cubeZ: -5 //立方体的z轴的位置
+    };
+    datGui = new dat.GUI();
+    //将设置属性添加到gui当中，gui.add(对象，属性，最小值，最大值）
+    datGui.add(gui,'lightY',0,100);
+    datGui.add(gui,'sphereX',-30,30);
+    datGui.add(gui,'sphereZ',-30,30);
+    datGui.add(gui,'cubeX',0,60);
+    datGui.add(gui,'cubeZ',-30,30);
+}
+
 function render() {
     renderer.render(scene, camera);
 }
@@ -133,17 +175,23 @@ function render() {
  */
 function animate() {
     stats.begin();
-    requestAnimationFrame(animate);
+    light.position.y = gui.lightY;
+    sphere.position.x = gui.sphereX;
+    sphere.position.z = gui.sphereZ;
+    cube.position.x = gui.cubeX;
+    cube.position.z = gui.cubeZ;
 
 
     render();
     controls.update();
-    
+    requestAnimationFrame(animate);
+
     stats.end();
 
 }
 
 function draw() {
+    initDatGui();
     initRender();
     initScene();
     initCamera();
@@ -151,6 +199,8 @@ function draw() {
     initAssist();
     initModel();
     animate();
+
+    window.onresize = onWindowResize;
 }
 draw();
 
@@ -162,4 +212,3 @@ function onWindowResize() {
     render();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
-
