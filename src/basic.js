@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 10:46:22
+ * @Last Modified time: 2018-03-28 13:23:54
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -12,9 +12,9 @@ let renderer, camera, scene, ambientLight, pointLight, directionalLight;
 
 let axisHelper, gridHelper, controls;
 
-let sphere, cube;
+let sphere, cube, plane;
 
-let sphereMaterial;
+let sphereMaterial, cubeMaterial;
 
 let datGui, gui, settings;
 
@@ -46,7 +46,7 @@ function initCamera() {
     camera = new THREE.PerspectiveCamera(
         45,
         canvas.width / canvas.height,
-        1,
+        0.1,
         1000
     );
     camera.position.set(0, 40, 100);
@@ -62,7 +62,7 @@ function initScene() {
     // scene.fog = new THREE.Fog(0xffffff,100,120);
     // scene.fog = new THREE.FogExp2(0xffffff,0.02);
     //场景内所有模型都使用同一种材质 
-    // scene.overrideMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffff });
+    // scene.overrideMaterial = new THREE.MeshDepthMaterial();
 }
 /**
  * 初始化光源
@@ -73,8 +73,8 @@ function initLight() {
     ambientLight = new THREE.AmbientLight('#111111');
     scene.add(ambientLight);
     // 点光源
-    directionalLight = new THREE.DirectionalLight(0xfffff);
-    directionalLight.position.set(15, 60, 10);
+    directionalLight = new THREE.DirectionalLight('#ffffff');
+    directionalLight.position.set(-40, 60, -10);
 
 
     directionalLight.shadow.camera.near = 20; //产生阴影的最近距离
@@ -100,82 +100,32 @@ function initLight() {
  * 
  */
 function initModel() {
-    let sphereGeometry = new THREE.SphereGeometry(10, 32, 32);
-    sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xeeefff });
-    sphereMaterial.needsUpdate = true;
-    sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    sphere.position.set(-20, 20, 0);
-    sphere.castShadow = true;
-    
-    scene.add(sphere);
-
-
-    // 创建一个立方体
-    //    v6----- v5
-    //   /|      /|
-    //  v1------v0|
-    //  | |     | |
-    //  | |v7---|-|v4
-    //  |/      |/
-    //  v2------v3
-    let cubeGeometry = new THREE.Geometry();
-
-    // 创建顶点位置
-    let vertices = [
-        new THREE.Vector3(10, 10, 10), //v0
-        new THREE.Vector3(-10, 10, 10), //v1
-        new THREE.Vector3(-10, -10, 10), //v2
-        new THREE.Vector3(10, -10, 10), //v3
-        new THREE.Vector3(10, -10, -10), //v4
-        new THREE.Vector3(10, 10, -10), //v5
-        new THREE.Vector3(-10, 10, -10), //v6
-        new THREE.Vector3(-10, -10, -10) //v7
-    ];
-
-    cubeGeometry.vertices = vertices;
-
-    // 如果要绘制的面是朝向相机的，那这个面的顶点的书写方式是逆时针绘制的
-    // 反之是顺时针
-    let faces = [
-        new THREE.Face3(0, 1, 2),
-        new THREE.Face3(0, 2, 3),
-        new THREE.Face3(0, 3, 4),
-        new THREE.Face3(0, 4, 5),
-        new THREE.Face3(0, 6, 1),
-        new THREE.Face3(0, 5, 6),
-        new THREE.Face3(7, 1, 6),
-        new THREE.Face3(7, 2, 1),
-        new THREE.Face3(7, 3, 2),
-        new THREE.Face3(7, 4, 3),
-        new THREE.Face3(7, 6, 5),
-        new THREE.Face3(7, 5, 4),
-    ];
-    cubeGeometry.faces = faces;
-
-    // 生成法向量
-    cubeGeometry.computeFaceNormals();
-
-    let cubeMaterial = new THREE.MeshLambertMaterial({ color: 0x00ffff });
+    let cubeGeometry = new THREE.CubeGeometry(25, 25, 25);
+    cubeMaterial = new THREE.MeshLambertMaterial({
+        color: '#eeeeee'
+    });
     cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-    cube.position.x = 5;
-    cube.position.y = 10;
-    cube.position.z = -5;
-
-    //告诉立方体需要投射阴影
+    cube.position.set(30, 5, -5);
     cube.castShadow = true;
     scene.add(cube);
 
-    //底部平面
-    let planeGeometry = new THREE.PlaneGeometry(100, 100);
-    let planeMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+    let sphereGeometry = new THREE.SphereGeometry(10, 32, 32);
+    sphereMaterial = new THREE.MeshLambertMaterial({
+        color: 0x00ffff
+    });
+    sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphere.position.set(-20, 20, 0);
+    sphere.castShadow = true;
+    scene.add(sphere);
 
-    let plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    let planeGeometry = new THREE.PlaneGeometry(5000, 5000, 20, 20);
+    let planeMaterial = new THREE.MeshLambertMaterial({color: 0xaaaaaa});
+    plane = new THREE.Mesh(planeGeometry, planeMaterial);
     plane.rotation.x = -0.5 * Math.PI;
     plane.position.y = -0;
-
-    //告诉底部平面需要接收阴影
     plane.receiveShadow = true;
     scene.add(plane);
+
 }
 /**
  * 初始化辅助系统
@@ -214,62 +164,19 @@ function initAssist() {
 
 function initDatGui() {
     gui = {
-        opacity: sphereMaterial.opacity,
-        transparent: sphereMaterial.transparent,
-        overdraw: sphereMaterial.overdraw,
-        visible: sphereMaterial.visible,
-        side: 'front',
-        color: sphereMaterial.color.getStyle(),
-        wireframe: sphereMaterial.wireframe,
-        wireframeLinewidth: sphereMaterial.wireframeLinewidth,
-        wireFrameLineJoin: sphereMaterial.wireframeLinejoin,
+        directionalLight: '#ffffff', //点光源
+        directionalLightIntensity: 1, //灯光强度
+        visible: true, //是否可见
+        castShadow: true,
+        exponent: 30,
+        target: 'plane',
+        debug: false,
+        groundColor: '#00ff00',
+        skyColor: '#0000ff',
+        hemiLightIntensity: 0.3
     };
 
     let datGui = new dat.GUI();
-
-    datGui.add(gui, 'opacity', 0, 1)
-        .onChange(function (e) {
-
-            sphereMaterial.opacity = e;
-
-        });
-    datGui.add(gui, 'transparent')
-        .onChange(function (e) {
-            sphereMaterial.transparent = e;
-
-        });
-
-    datGui.add(gui, 'wireframe')
-        .onChange(function (e) {
-            sphereMaterial.wireframe = e;
-        });
-    datGui.add(gui, 'wireframeLinewidth', 0, 20)
-        .onChange(function (e) {
-            sphereMaterial.wireframeLinewidth = e;
-        });
-    datGui.add(gui, 'visible')
-        .onChange(function (e) {
-            sphereMaterial.visible = e;
-        });
-    datGui.add(gui, 'side', ['front', 'back', 'double'])
-        .onChange(function (e) {
-            switch (e) {
-                case 'front':
-                    sphereMaterial.side = THREE.FrontSide;
-                    break;
-                case 'back':
-                    sphereMaterial.side = THREE.BackSide;
-                    break;
-                case 'double':
-                    sphereMaterial.side = THREE.DoubleSide;
-                    break;
-            }
-            
-        });
-    datGui.addColor(gui, 'color')
-        .onChange(function (e) {
-            sphereMaterial.color.setStyle(e);
-        });
 
 }
 
