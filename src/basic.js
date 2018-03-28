@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 18:46:54
+ * @Last Modified time: 2018-03-28 19:07:35
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -49,9 +49,9 @@ function initCamera() {
         45,
         canvas.width / canvas.height,
         0.1,
-        1000
+        10000
     );
-    camera.position.set(0, 40, 100);
+    camera.position.set(0, 0, 1500);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -82,10 +82,6 @@ function initLight() {
     //开启阴影投射
     spotLight.castShadow = true;
     scene.add(spotLight);
-
-    // let debug = new THREE.CameraHelper(directionalLight.shadow.camera);
-
-    // scene.add(debug);
 }
 /**
  * 初始化模型
@@ -139,59 +135,52 @@ function initAssist() {
 
 function initDatGui() {
     //声明一个保存需求修改的相关数据的对象
-
     gui = {
-        // 点的总数
-        numberOfPoints: 5,
-        // 该属性指定构建这个THREE.TubeGeometry对象所用的分段数
-        segments: 64,
-        // 该属性指定斜角的高度
-        radius: 1,
-        // 该属性指定THREE.TubeGeometry对象圆周的分段数。
-        radiusSegments: 8,
-        // 线段是否闭合
-        closed: false,
-        // 数据点
-        points: [],
-        newPoints: function () {
-            let points = [];
-            for (var i = 0; i < gui.numberOfPoints; i++) {
-                var randomX = -20 + Math.round(Math.random() * 50);
-                var randomY = -15 + Math.round(Math.random() * 40);
-                var randomZ = -20 + Math.round(Math.random() * 40);
-                points.push(new THREE.Vector3(randomX, randomY, randomZ));
-            }
-            gui.points = points;
-            gui.redraw();
-        },
-        redraw: function () {
-            //清楚掉场景中原来的模型对象
-            scene.remove(spGroup);
-            scene.remove(tubeMesh);
-
-            //重新绘制模型
-            generatePoints(gui.points, gui.segments, gui.radius, gui.radiusSegments, gui.closed);
+        amount: 2,
+        bevelThickness: 2,
+        bevelSize: 0.5,
+        bevelEnabled: true,
+        bevelSegments: 3,
+        curveSegments: 12,
+        steps: 1,
+        asGeom: function () {
+            // 删除旧的模型
+            scene.remove(shape);
+            // 创建一个新的
+            var options = {
+                amount: gui.amount,
+                bevelThickness: gui.bevelThickness,
+                bevelSize: gui.bevelSize,
+                bevelSegments: gui.bevelSegments,
+                bevelEnabled: gui.bevelEnabled,
+                curveSegments: gui.curveSegments,
+                steps: gui.steps
+            };
+            shape = createMesh(new THREE.ExtrudeGeometry(drawShape(), options));
+            // 将模型添加到场景当中
+            scene.add(shape);
         }
     };
     let datGui = new dat.GUI();
+    datGui.add(gui, 'amount', 0, 200)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'bevelThickness', 0, 10)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'bevelSize', 0, 10)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'bevelSegments', 0, 30)
+        .step(1)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'bevelEnabled')
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'curveSegments', 1, 30)
+        .step(1)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'steps', 1, 5)
+        .step(1)
+        .onChange(gui.asGeom);
 
-    //将设置属性添加到gui当中，gui.add(对象，属性，最小值，最大值）
-    datGui.add(gui, 'newPoints');
-    datGui.add(gui, 'numberOfPoints', 2, 15)
-        .step(1)
-        .onChange(gui.newPoints);
-    datGui.add(gui, 'segments', 0, 200)
-        .step(1)
-        .onChange(gui.redraw);
-    datGui.add(gui, 'radius', 0, 10)
-        .onChange(gui.redraw);
-    datGui.add(gui, 'radiusSegments', 0, 100)
-        .step(1)
-        .onChange(gui.redraw);
-    datGui.add(gui, 'closed')
-        .onChange(gui.redraw);
-
-    gui.newPoints();
+    gui.asGeom();
 }
 
 
@@ -266,7 +255,7 @@ function createMesh(geom) {
 
     //设置当前的模型矩阵沿y轴负方向偏移20
     geom.applyMatrix(new THREE.Matrix4()
-        .makeTranslation(0, -20, 0));
+        .makeTranslation(-450, -300, 0));
 
     var meshMaterial = new THREE.MeshNormalMaterial({
         flatShading: THREE.FlatShading,
@@ -279,42 +268,15 @@ function createMesh(geom) {
 
     // 将两种材质都赋给几何体
     var mesh = THREE.SceneUtils.createMultiMaterialObject(geom, [meshMaterial, wireFrameMat]);
+    //由于图形时反的，让图形翻个个
+
+    mesh.rotation.z = Math.PI;
     return mesh;
 }
 
 function drawShape() {
-    // 逆时针绘制
-    let shape = new THREE.Shape();
-    // 设置开始点的位置
-    shape.moveTo(20, 10);
-    // 从起始点绘制直线到当前位置
-    shape.lineTo(20, 40);
-    //设置一条曲线到30 40
-    shape.bezierCurveTo(15, 25, -5, 25, -30, 40);
-
-    // 设置一条通过当前所有顶点的光滑曲线
-
-    shape.splineThru(
-        [new THREE.Vector2(-22, 30),
-            new THREE.Vector2(-18, 20),
-            new THREE.Vector2(-20, 10),
-        ]);
-    // 设置曲线回到顶点
-    shape.quadraticCurveTo(0, -15, 20, 10);
-
-    // 添加第一个眼
-    var hole1 = new THREE.Path();
-    hole1.absellipse(6, 20, 2, 2, 0, Math.PI * 2, true);
-    shape.holes.push(hole1);
-
-    // 添加第一个眼
-    var hole2 = new THREE.Path();
-    hole2.absellipse(-6, 20, 2, 2, 0, Math.PI * 2, true);
-    shape.holes.push(hole2);
-
-    // 添加嘴巴，一半的圆
-    var hole3 = new THREE.Path();
-    hole3.absarc(0, 5, 2, 0, Math.PI, true);
-    shape.holes.push(hole3);
+    let svgString = document.querySelector('#batman-path')
+        .getAttribute('d');
+    let shape = transformSVGPathExposed(svgString);
     return shape;
 }
