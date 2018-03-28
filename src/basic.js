@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 15:45:56
+ * @Last Modified time: 2018-03-28 16:55:30
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -90,7 +90,11 @@ function initLight() {
  * 
  */
 function initModel() {
-    generatePoints(120, 2, 2 * Math.PI);
+    let shape = new THREE.ShapeGeometry(drawShape());
+    let material = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+    material.side = THREE.DoubleSide; //设置成两面都可见
+    let mesh = new THREE.Mesh(shape, material);
+    scene.add(mesh);
 }
 /**
  * 初始化辅助系统
@@ -117,7 +121,7 @@ function initAssist() {
     controls.dampingFactor = 0.25;
     // 旋转的速度
     controls.rotateSpeed = 0.35;
-    controls.autoRotate = true;
+    controls.autoRotate = false;
 
     stats = new Stats();
     stats.setMode(0);
@@ -235,4 +239,41 @@ function createMesh(geom) {
     // 将两种材质都赋给几何体
     var mesh = THREE.SceneUtils.createMultiMaterialObject(geom, [meshMaterial, wireFrameMat]);
     return mesh;
+}
+
+function drawShape() {
+    // 逆时针绘制
+    let shape = new THREE.Shape();
+    // 设置开始点的位置
+    shape.moveTo(20, 10);
+    // 从起始点绘制直线到当前位置
+    shape.lineTo(20, 40);
+    //设置一条曲线到30 40
+    shape.bezierCurveTo(15, 25, -5, 25, -30, 40);
+
+    // 设置一条通过当前所有顶点的光滑曲线
+
+    shape.splineThru(
+        [new THREE.Vector2(-22, 30),
+            new THREE.Vector2(-18, 20),
+            new THREE.Vector2(-20, 10),
+        ]);
+    // 设置曲线回到顶点
+    shape.quadraticCurveTo(0, -15, 20, 10);
+
+    // 添加第一个眼
+    var hole1 = new THREE.Path();
+    hole1.absellipse(6, 20, 2, 2, 0, Math.PI * 2, true);
+    shape.holes.push(hole1);
+
+    // 添加第一个眼
+    var hole2 = new THREE.Path();
+    hole2.absellipse(-6, 20, 2, 2, 0, Math.PI * 2, true);
+    shape.holes.push(hole2);
+
+    // 添加嘴巴，一半的圆
+    var hole3 = new THREE.Path();
+    hole3.absarc(0, 5, 2, 0, Math.PI, true);
+    shape.holes.push(hole3);
+    return shape;
 }
