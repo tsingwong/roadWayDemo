@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 08:44:41
+ * @Last Modified time: 2018-03-28 09:11:31
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -14,7 +14,7 @@ let axisHelper, gridHelper, controls;
 
 let sphere, cube;
 
-let datGui, gui;
+let datGui, gui, settings;
 
 // 兼容性检测
 if (!Detector.webgl) {
@@ -194,18 +194,51 @@ function initAssist() {
 }
 
 function initDatGui() {
-    gui = {
-        lightY: 30, //灯光y轴的位置
-        cubeX: 25, //立方体的x轴位置
-        cubeY: 10, //立方体的x轴位置
-        cubeZ: -5 //立方体的z轴的位置
+    settings = {
+        positionX: 0,
+        positionY: 5,
+        positionZ: 0,
+        rotationX: 0,
+        rotationY: 0,
+        rotationZ: 0,
+        scaleX: 1,
+        scaleY: 1,
+        scaleZ: 1,
+        translateX: 0,
+        translateY: 0,
+        translateZ: 0,
+        translate: function () {
+            cube.translateX(settings.translateX);
+            cube.translateY(settings.translateY);
+            cube.translateZ(settings.translateZ);
+            settings.positionX = cube.position.x;
+            settings.positionY = cube.position.y;
+            settings.positionZ = cube.position.z;
+        },
+        visible: true
     };
+
+
     datGui = new dat.GUI();
-    //将设置属性添加到gui当中，gui.add(对象，属性，最小值，最大值）
-    datGui.add(gui, 'lightY', 0, 100);
-    datGui.add(gui, 'cubeX', -30, 30);
-    datGui.add(gui, 'cubeY', -30, 30);
-    datGui.add(gui, 'cubeZ', -30, 30);
+    let position = datGui.addFolder('Position');
+    position.add(settings, 'positionX', -30, 30).listen();
+    position.add(settings, 'positionY', -30, 30).listen();
+    position.add(settings, 'positionZ', -30, 30).listen();
+    let scale = datGui.addFolder('Scale');
+    scale.add(settings, 'scaleX', 0, 5);
+    scale.add(settings, 'scaleY', 0, 5);
+    scale.add(settings, 'scaleZ', 0, 5);
+    let rotation = datGui.addFolder('Rotation');
+    rotation.add(settings, 'rotationX', -2 * Math.PI, 2 * Math.PI);
+    rotation.add(settings, 'rotationY', -2 * Math.PI, 2 * Math.PI);
+    rotation.add(settings, 'rotationZ', -2 * Math.PI, 2 * Math.PI);
+    let translate = datGui.addFolder('Translate');
+    translate.add(settings, 'translateX', -5, 5);
+    translate.add(settings, 'translateY', -5, 5);
+    translate.add(settings, 'translateZ', -5, 5);
+    translate.add(settings, 'translate');
+    datGui.add(settings, 'visible');
+
 }
 
 function render() {
@@ -219,10 +252,13 @@ function render() {
  */
 function animate() {
     stats.begin();
-    light.position.y = gui.lightY;
-    cube.position.x = gui.cubeX;
-    cube.position.y = gui.cubeY;
-    cube.position.z = gui.cubeZ;
+    cube.position.set(settings.positionX, settings.positionY, settings.positionZ);
+
+    cube.scale.set(settings.scaleX, settings.scaleY, settings.scaleZ);
+
+    cube.rotation.set(settings.rotationX, settings.rotationY, settings.rotationZ);
+
+    cube.visible = settings.visible;
 
 
     render();
