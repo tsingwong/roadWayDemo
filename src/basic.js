@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 08:17:11
+ * @Last Modified time: 2018-03-28 08:44:41
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -60,7 +60,7 @@ function initScene() {
     // scene.fog = new THREE.Fog(0xffffff,100,120);
     // scene.fog = new THREE.FogExp2(0xffffff,0.02);
     //场景内所有模型都使用同一种材质 
-    scene.overrideMaterial = new THREE.MeshStandardMaterial({color:0x00ffff});
+    // scene.overrideMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffff });
 }
 /**
  * 初始化光源
@@ -81,20 +81,61 @@ function initLight() {
  * 
  */
 function initModel() {
-    let sphereGeometry = new THREE.SphereGeometry(5, 20, 20);
-    let sphereMaterial = new THREE.MeshStandardMaterial({
-        color: 0x7777ff
-    });
-    sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    sphere.position.y = 5;
-
-    //告诉球需要投射阴影
-    sphere.castShadow = true;
-
-    scene.add(sphere);
 
     //立方体
-    let cubeGeometry = new THREE.CubeGeometry(10, 10, 8);
+    // let cubeGeometry = new THREE.CubeGeometry(10, 10, 8);
+    // let cubeMaterial = new THREE.MeshLambertMaterial({ color: 0x00ffff });
+    // cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    // cube.position.x = 25;
+    // cube.position.y = 5;
+    // cube.position.z = -5;
+
+
+    // 创建一个立方体
+    //    v6----- v5
+    //   /|      /|
+    //  v1------v0|
+    //  | |     | |
+    //  | |v7---|-|v4
+    //  |/      |/
+    //  v2------v3
+    let cubeGeometry = new THREE.Geometry();
+
+    // 创建顶点位置
+    let vertices = [
+        new THREE.Vector3(10, 10, 10), //v0
+        new THREE.Vector3(-10, 10, 10), //v1
+        new THREE.Vector3(-10, -10, 10), //v2
+        new THREE.Vector3(10, -10, 10), //v3
+        new THREE.Vector3(10, -10, -10), //v4
+        new THREE.Vector3(10, 10, -10), //v5
+        new THREE.Vector3(-10, 10, -10), //v6
+        new THREE.Vector3(-10, -10, -10) //v7
+    ];
+
+    cubeGeometry.vertices = vertices;
+
+    // 如果要绘制的面是朝向相机的，那这个面的顶点的书写方式是逆时针绘制的
+    // 反之是顺时针
+    let faces = [
+        new THREE.Face3(0, 1, 2),
+        new THREE.Face3(0, 2, 3),
+        new THREE.Face3(0, 3, 4),
+        new THREE.Face3(0, 4, 5),
+        new THREE.Face3(0, 6, 1),
+        new THREE.Face3(0, 5, 6),
+        new THREE.Face3(7, 1, 6),
+        new THREE.Face3(7, 2, 1),
+        new THREE.Face3(7, 3, 2),
+        new THREE.Face3(7, 4, 3),
+        new THREE.Face3(7, 6, 5),
+        new THREE.Face3(7, 5, 4),
+    ];
+    cubeGeometry.faces = faces;
+
+    // 生成法向量
+    cubeGeometry.computeFaceNormals();
+
     let cubeMaterial = new THREE.MeshLambertMaterial({ color: 0x00ffff });
     cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
     cube.position.x = 25;
@@ -155,18 +196,16 @@ function initAssist() {
 function initDatGui() {
     gui = {
         lightY: 30, //灯光y轴的位置
-        sphereX: 0, //球的x轴的位置
-        sphereZ: 0, //球的z轴的位置
         cubeX: 25, //立方体的x轴位置
+        cubeY: 10, //立方体的x轴位置
         cubeZ: -5 //立方体的z轴的位置
     };
     datGui = new dat.GUI();
     //将设置属性添加到gui当中，gui.add(对象，属性，最小值，最大值）
-    datGui.add(gui,'lightY',0,100);
-    datGui.add(gui,'sphereX',-30,30);
-    datGui.add(gui,'sphereZ',-30,30);
-    datGui.add(gui,'cubeX',0,60);
-    datGui.add(gui,'cubeZ',-30,30);
+    datGui.add(gui, 'lightY', 0, 100);
+    datGui.add(gui, 'cubeX', -30, 30);
+    datGui.add(gui, 'cubeY', -30, 30);
+    datGui.add(gui, 'cubeZ', -30, 30);
 }
 
 function render() {
@@ -181,9 +220,8 @@ function render() {
 function animate() {
     stats.begin();
     light.position.y = gui.lightY;
-    sphere.position.x = gui.sphereX;
-    sphere.position.z = gui.sphereZ;
     cube.position.x = gui.cubeX;
+    cube.position.y = gui.cubeY;
     cube.position.z = gui.cubeZ;
 
 
