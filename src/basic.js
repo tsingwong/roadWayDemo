@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 08:13:30
+ * @Last Modified time: 2018-03-28 08:17:11
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -57,8 +57,10 @@ function initCamera() {
 function initScene() {
     scene = new THREE.Scene();
     // 雾化
-    // scene.fog = new THREE.Fog(0xffffff,100,120); 
-    scene.fog = new THREE.FogExp2(0xffffff,0.02);  
+    // scene.fog = new THREE.Fog(0xffffff,100,120);
+    // scene.fog = new THREE.FogExp2(0xffffff,0.02);
+    //场景内所有模型都使用同一种材质 
+    scene.overrideMaterial = new THREE.MeshStandardMaterial({color:0x00ffff});
 }
 /**
  * 初始化光源
