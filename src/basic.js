@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 20:19:53
+ * @Last Modified time: 2018-03-28 20:53:17
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -149,7 +149,7 @@ function initDatGui() {
         changeFont: function () {
             //创建loader进行字体加载，供后面的模型使用
             var loader = new THREE.FontLoader();
-            loader.load('../static/js/lib/' + gui.fontName + '_regular' + '.typeface.json', function (response) {
+            loader.load('../static/js/lib/MicrosoftYaHei_Regular.json', function (response) {
                 gui.font = response;
                 gui.asGeom();
             });
@@ -172,12 +172,8 @@ function initDatGui() {
                 curveSegments: gui.curveSegments,
                 steps: gui.steps
             };
-            text1 = createMesh(new THREE.TextGeometry('Learning', options));
-            text1.position.z = -100;
-            text1.position.y = 100;
-            scene.add(text1);
-            text2 = createMesh(new THREE.TextGeometry('Three.js', options));
-            scene.add(text2);
+            shape = createMesh(new THREE.ExtrudeGeometry(drawShape(), options));
+            scene.add(shape);
         }
     };
     let datGui = new dat.GUI();
@@ -277,9 +273,11 @@ function generatePoints(points, segments, radius, radiusSegments, closed) {
 }
 
 function createMesh(geom) {
+    geom.center();
+    console.log(JSON.stringify(geom.boundingBox));
 
-    geom.applyMatrix(new THREE.Matrix4()
-        .makeTranslation(-250, -100, 0));
+    // geom.applyMatrix(new THREE.Matrix4()
+    //     .makeTranslation(-250, -100, 0));
 
     var meshMaterial = new THREE.MeshNormalMaterial({
         flatShading: THREE.FlatShading,
