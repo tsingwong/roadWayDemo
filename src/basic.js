@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 09:40:33
+ * @Last Modified time: 2018-03-28 09:57:01
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -72,7 +72,7 @@ function initLight() {
     scene.add(ambientLight);
     // 平衡光
     pointLight = new THREE.SpotLight(0xfffff);
-    pointLight.position.set(60, 30, 0);
+    pointLight.position.set(15, 60, 10);
     //告诉平行光需要开启阴影投射
     pointLight.castShadow = true;
     scene.add(pointLight);
@@ -140,7 +140,7 @@ function initModel() {
     let cubeMaterial = new THREE.MeshLambertMaterial({ color: 0x00ffff });
     cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
     cube.position.x = 5;
-    cube.position.y = 5;
+    cube.position.y = 10;
     cube.position.z = -5;
 
     //告诉立方体需要投射阴影
@@ -198,27 +198,22 @@ function initDatGui() {
     gui = {
         ambientLight: '#111111',
         changeAmbient: function () {
-            let flag = false;
-            scene.children.find((element, index, arr) => {
-                if (element === ambientLight) {
-                    flag = true;
-                }
-            });
-            flag ? scene.remove(ambientLight) : scene.add(ambientLight);
+            // let flag = false;
+            // scene.children.find((element, index, arr) => {
+            //     if (element === ambientLight) {
+            //         flag = true;
+            //     }
+            // });
+            // flag ? scene.remove(ambientLight) : scene.add(ambientLight);
+            ambientLight.visible = !ambientLight.visible;
         },
         pointLight: '#111111',
         changePoint: function () {
-            let flag = false;
-            scene.children.find((element, index, arr) => {
-                if (element === pointLight) {
-                    flag = true;
-                }
-            });
-            flag ? scene.remove(pointLight) : scene.add(pointLight);
+            pointLight.visible = !pointLight.visible;
         },
-        lightY: 30, //灯光y轴的位置
+        lightY: 60, //灯光y轴的位置
         cubeX: 5, //立方体的x轴位置
-        cubeY: 5, //立方体的x轴位置
+        cubeY: 10, //立方体的x轴位置
         cubeZ: -5 //立方体的z轴的位置
     };
 
