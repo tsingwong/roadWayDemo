@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 21:22:53
+ * @Last Modified time: 2018-03-28 21:44:07
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -90,39 +90,17 @@ function initLight() {
  * 
  */
 function initModel() {
-    let sphereGeometry = new THREE.SphereGeometry(50, 20, 20);
-    sphere = createMesh(sphereGeometry);
+    let material = new THREE.SpriteMaterial(new THREE.SpriteMaterial({color: '#ff0000'}));
 
-    let cubeGeometry = new THREE.BoxGeometry(30, 30, 30);
-    cube = createMesh(cubeGeometry);
-    cube.position.x = -50;
 
-    //生成ThreeBSP对象
-    var sphereBSP = new ThreeBSP(sphere);
-    var cubeBSP = new ThreeBSP(cube);
-
-    // 差集
-    // var resultBSP = sphereBSP.subtract(cubeBSP);
-    // 并集
-    // var resultBSP = sphereBSP.union(cubeBSP);
-    // 交集
-    var resultBSP = sphereBSP.intersect(cubeBSP);
+    for (var x = -5; x <= 5; x++) {
+        for (var y = -5; y <= 5; y++) {
+            var sprite = new THREE.Sprite(material);
+            sprite.position.set(x * 10, y * 10, 0);
+            scene.add(sprite);
+        }
+    }
     
-    
-    //从BSP对象内获取到处理完后的mesh模型数据
-
-    var result = resultBSP.toMesh();
-    result.geometry.computeFaceNormals();
-    result.geometry.computeVertexNormals();
-
-    let material = new THREE.MeshPhongMaterial({ color: 0x00ffff });
-
-    result.material = material;
-
-    //将计算出来模型添加到场景当中
-    // scene.add(sphere);
-    // scene.add(cube);
-    scene.add(result);
 }
 /**
  * 初始化辅助系统
