@@ -2,13 +2,13 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 09:11:31
+ * @Last Modified time: 2018-03-28 09:40:33
  */
 let canvas = document.querySelector('#canvas');
 let stats;
 
 /* global THREE, Stats, Detector, dat*/
-let renderer, camera, scene, light;
+let renderer, camera, scene, ambientLight, pointLight;
 
 let axisHelper, gridHelper, controls;
 
@@ -68,13 +68,14 @@ function initScene() {
  */
 function initLight() {
     // 环境光
-    scene.add(new THREE.AmbientLight(0x444444));
+    ambientLight = new THREE.AmbientLight('#111111');
+    scene.add(ambientLight);
     // 平衡光
-    light = new THREE.SpotLight(0xfffff);
-    light.position.set(60, 30, 0);
+    pointLight = new THREE.SpotLight(0xfffff);
+    pointLight.position.set(60, 30, 0);
     //告诉平行光需要开启阴影投射
-    light.castShadow = true;
-    scene.add(light);
+    pointLight.castShadow = true;
+    scene.add(pointLight);
 }
 /**
  * 初始化模型
@@ -138,7 +139,7 @@ function initModel() {
 
     let cubeMaterial = new THREE.MeshLambertMaterial({ color: 0x00ffff });
     cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-    cube.position.x = 25;
+    cube.position.x = 5;
     cube.position.y = 5;
     cube.position.z = -5;
 
@@ -194,50 +195,51 @@ function initAssist() {
 }
 
 function initDatGui() {
-    settings = {
-        positionX: 0,
-        positionY: 5,
-        positionZ: 0,
-        rotationX: 0,
-        rotationY: 0,
-        rotationZ: 0,
-        scaleX: 1,
-        scaleY: 1,
-        scaleZ: 1,
-        translateX: 0,
-        translateY: 0,
-        translateZ: 0,
-        translate: function () {
-            cube.translateX(settings.translateX);
-            cube.translateY(settings.translateY);
-            cube.translateZ(settings.translateZ);
-            settings.positionX = cube.position.x;
-            settings.positionY = cube.position.y;
-            settings.positionZ = cube.position.z;
+    gui = {
+        ambientLight: '#111111',
+        changeAmbient: function () {
+            let flag = false;
+            scene.children.find((element, index, arr) => {
+                if (element === ambientLight) {
+                    flag = true;
+                }
+            });
+            flag ? scene.remove(ambientLight) : scene.add(ambientLight);
         },
-        visible: true
+        pointLight: '#111111',
+        changePoint: function () {
+            let flag = false;
+            scene.children.find((element, index, arr) => {
+                if (element === pointLight) {
+                    flag = true;
+                }
+            });
+            flag ? scene.remove(pointLight) : scene.add(pointLight);
+        },
+        lightY: 30, //灯光y轴的位置
+        cubeX: 5, //立方体的x轴位置
+        cubeY: 5, //立方体的x轴位置
+        cubeZ: -5 //立方体的z轴的位置
     };
 
+    let datGui = new dat.GUI();
+    datGui.addColor(gui,'ambientLight').onChange(function (e) {
+        ambientLight.color = new THREE.Color(e);
 
-    datGui = new dat.GUI();
-    let position = datGui.addFolder('Position');
-    position.add(settings, 'positionX', -30, 30).listen();
-    position.add(settings, 'positionY', -30, 30).listen();
-    position.add(settings, 'positionZ', -30, 30).listen();
-    let scale = datGui.addFolder('Scale');
-    scale.add(settings, 'scaleX', 0, 5);
-    scale.add(settings, 'scaleY', 0, 5);
-    scale.add(settings, 'scaleZ', 0, 5);
-    let rotation = datGui.addFolder('Rotation');
-    rotation.add(settings, 'rotationX', -2 * Math.PI, 2 * Math.PI);
-    rotation.add(settings, 'rotationY', -2 * Math.PI, 2 * Math.PI);
-    rotation.add(settings, 'rotationZ', -2 * Math.PI, 2 * Math.PI);
-    let translate = datGui.addFolder('Translate');
-    translate.add(settings, 'translateX', -5, 5);
-    translate.add(settings, 'translateY', -5, 5);
-    translate.add(settings, 'translateZ', -5, 5);
-    translate.add(settings, 'translate');
-    datGui.add(settings, 'visible');
+    });
+    datGui.add(gui, 'changeAmbient');
+
+    datGui.addColor(gui,'pointLight').onChange(function (e) {
+        pointLight.color = new THREE.Color(e);
+
+    });
+    datGui.add(gui, 'changePoint');
+    
+    
+    datGui.add(gui, 'lightY', 0, 100);
+    datGui.add(gui, 'cubeX', -30, 30);
+    datGui.add(gui, 'cubeY', -30, 30);
+    datGui.add(gui, 'cubeZ', -30, 30);
 
 }
 
@@ -252,14 +254,10 @@ function render() {
  */
 function animate() {
     stats.begin();
-    cube.position.set(settings.positionX, settings.positionY, settings.positionZ);
 
-    cube.scale.set(settings.scaleX, settings.scaleY, settings.scaleZ);
 
-    cube.rotation.set(settings.rotationX, settings.rotationY, settings.rotationZ);
-
-    cube.visible = settings.visible;
-
+    pointLight.position.y = gui.lightY;
+    cube.position.set(gui.cubeX, gui.cubeY, gui.cubeZ);
 
     render();
     controls.update();
