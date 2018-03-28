@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 16:55:30
+ * @Last Modified time: 2018-03-28 17:00:36
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -91,10 +91,9 @@ function initLight() {
  */
 function initModel() {
     let shape = new THREE.ShapeGeometry(drawShape());
-    let material = new THREE.MeshBasicMaterial({ color: 0xff00ff });
-    material.side = THREE.DoubleSide; //设置成两面都可见
-    let mesh = new THREE.Mesh(shape, material);
+    let mesh = createMesh(shape);
     scene.add(mesh);
+
 }
 /**
  * 初始化辅助系统
@@ -232,7 +231,7 @@ function generatePoints(segments, phiStart, phiLength) {
 function createMesh(geom) {
 
     var meshMaterial = new THREE.MeshNormalMaterial();
-    meshMaterial.side = THREE.BackSide; //将材质设置成里面都可见
+    meshMaterial.side = THREE.BothSide; //将材质设置成里面都可见
     var wireFrameMat = new THREE.MeshBasicMaterial();
     wireFrameMat.wireframe = true; //把材质渲染成线框
 
@@ -277,3 +276,4 @@ function drawShape() {
     shape.holes.push(hole3);
     return shape;
 }
+
