@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 19:07:35
+ * @Last Modified time: 2018-03-28 19:59:34
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -24,6 +24,43 @@ let spGroup, tubeMesh;
 if (!Detector.webgl) {
     Detector.addGetWebGLMessage();
 }
+
+
+//创建平面模型的方法
+plane = function (u, v) {
+    var x = u * 50;
+    var y = 0;
+    var z = v * 50;
+    return new THREE.Vector3(x, y, z);
+};
+
+//创建波浪图形的方法
+var radialWave = function (u, v) {
+    var r = 50;
+    var x = Math.sin(u) * r;
+    var z = Math.sin(v / 2) * 2 * r;
+    var y = (Math.sin(u * 4 * Math.PI) + Math.cos(v * 2 * Math.PI)) * 2.8;
+    return new THREE.Vector3(x, y, z);
+};
+
+var klein = function (u, v) {
+    u *= Math.PI;
+    v *= 2 * Math.PI;
+    u = u * 2;
+    var x, y, z;
+    if (u < Math.PI) {
+        x = 3 * Math.cos(u) * (1 + Math.sin(u)) + (2 * (1 - Math.cos(u) / 2)) * Math.cos(u) * Math.cos(v);
+        z = -8 * Math.sin(u) - 2 * (1 - Math.cos(u) / 2) * Math.sin(u) * Math.cos(v);
+    } else {
+        x = 3 * Math.cos(u) * (1 + Math.sin(u)) + (2 * (1 - Math.cos(u) / 2)) * Math.cos(v + Math.PI);
+        z = -8 * Math.sin(u);
+    }
+
+
+    y = -2 * (1 - Math.cos(u) / 2) * Math.sin(v);
+    return new THREE.Vector3(x, y, z);
+};
+
 /**
  * 初始化renderer
  * 
@@ -51,7 +88,7 @@ function initCamera() {
         0.1,
         10000
     );
-    camera.position.set(0, 0, 1500);
+    camera.position.set(0, 0, 150);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -75,27 +112,22 @@ function initLight() {
     ambientLight = new THREE.AmbientLight('#111111');
     scene.add(ambientLight);
     // 点光源
-    spotLight = new THREE.SpotLight('#ffffff');
-    spotLight.position.set(-40, 60, -10);
+    directionalLight = new THREE.DirectionalLight('#ffffff');
+    directionalLight.position.set(-40, 60, -10);
 
 
     //开启阴影投射
-    spotLight.castShadow = true;
-    scene.add(spotLight);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
 }
 /**
  * 初始化模型
  * 
  */
 function initModel() {
-    shape = new THREE.ShapeGeometry(drawShape());
-    let mesh = createMesh(shape);
-    scene.add(mesh);
+    let mesh = createMesh(new THREE.ParametricGeometry(THREE.ParametricGeometries.klein, 25, 25));
 
-    // let material = new THREE.MeshPhongMaterial({color:0xff00ff});
-    // material.side = THREE.DoubleSide;//设置成两面都可见
-    // let mesh = new THREE.Mesh(shape,material);
-    // scene.add(mesh);
+    scene.add(mesh);
 
 }
 /**
@@ -210,8 +242,8 @@ function draw() {
     initCamera();
     initLight();
     initAssist();
-    // initModel();
-    initDatGui();
+    initModel();
+    // initDatGui();
     animate();
 
     window.onresize = onWindowResize;
@@ -252,15 +284,10 @@ function generatePoints(points, segments, radius, radiusSegments, closed) {
 }
 
 function createMesh(geom) {
-
-    //设置当前的模型矩阵沿y轴负方向偏移20
-    geom.applyMatrix(new THREE.Matrix4()
-        .makeTranslation(-450, -300, 0));
-
     var meshMaterial = new THREE.MeshNormalMaterial({
         flatShading: THREE.FlatShading,
         transparent: true,
-        opacity: 0.7
+        opacity: 0.9
     });
     meshMaterial.side = THREE.BothSide; //将材质设置成里面都可见
     var wireFrameMat = new THREE.MeshBasicMaterial();
@@ -268,9 +295,6 @@ function createMesh(geom) {
 
     // 将两种材质都赋给几何体
     var mesh = THREE.SceneUtils.createMultiMaterialObject(geom, [meshMaterial, wireFrameMat]);
-    //由于图形时反的，让图形翻个个
-
-    mesh.rotation.z = Math.PI;
     return mesh;
 }
 
