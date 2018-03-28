@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 09:57:01
+ * @Last Modified time: 2018-03-28 10:01:18
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -70,12 +70,16 @@ function initLight() {
     // 环境光
     ambientLight = new THREE.AmbientLight('#111111');
     scene.add(ambientLight);
-    // 平衡光
-    pointLight = new THREE.SpotLight(0xfffff);
+    // 点光源
+    pointLight = new THREE.PointLight(0xfffff);
     pointLight.position.set(15, 60, 10);
     //告诉平行光需要开启阴影投射
     pointLight.castShadow = true;
     scene.add(pointLight);
+
+    let debug = new THREE.CameraHelper(pointLight.shadow.camera);
+
+    scene.add(debug);
 }
 /**
  * 初始化模型
