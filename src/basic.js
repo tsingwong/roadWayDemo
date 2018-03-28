@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 17:00:36
+ * @Last Modified time: 2018-03-28 17:15:41
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -12,7 +12,7 @@ let renderer, camera, scene, ambientLight, pointLight, directionalLight, spotLig
 
 let axisHelper, gridHelper, controls;
 
-let sphere, cube, plane, line;
+let sphere, cube, plane, line, shape;
 
 let sphereMaterial, cubeMaterial;
 
@@ -90,7 +90,7 @@ function initLight() {
  * 
  */
 function initModel() {
-    let shape = new THREE.ShapeGeometry(drawShape());
+    shape = new THREE.ShapeGeometry(drawShape());
     let mesh = createMesh(shape);
     scene.add(mesh);
 
@@ -131,21 +131,62 @@ function initAssist() {
 }
 
 function initDatGui() {
-    gui = {
-        directionalLight: '#ffffff', //点光源
-        directionalLightIntensity: 1, //灯光强度
-        visible: true, //是否可见
-        castShadow: true,
-        exponent: 30,
-        target: 'plane',
-        debug: false,
-        groundColor: '#00ff00',
-        skyColor: '#0000ff',
-        hemiLightIntensity: 0.3
-    };
+    //声明一个保存需求修改的相关数据的对象
 
+    gui = {
+        // 该属性指定图形可以拉多高
+        amount: 2,
+        // 该属性指定斜角的深度
+        bevelThickness: 2,
+        // 该属性指定斜角的高度
+        bevelSize: 0.5,
+        // 如果这个属性设为true，就会有斜角
+        bevelEnabled: true,
+        // 该属性定义斜角的分段数
+        bevelSegments: 3,
+        // 该属性指定拉伸体沿深度方向分成多少段
+        curveSegments: 12,
+        // 该属性指定拉伸体沿深度方向分成多少段
+        steps: 1,
+        asGeom: function () {
+            // 删除旧的模型
+            scene.remove(shape);
+            // 创建一个新的
+            var options = {
+                amount: gui.amount,
+                bevelThickness: gui.bevelThickness,
+                bevelSize: gui.bevelSize,
+                bevelSegments: gui.bevelSegments,
+                bevelEnabled: gui.bevelEnabled,
+                curveSegments: gui.curveSegments,
+                steps: gui.steps
+            };
+            shape = createMesh(new THREE.ExtrudeGeometry(drawShape(), options));
+            // 将模型添加到场景当中
+            scene.add(shape);
+        }
+    };
     let datGui = new dat.GUI();
 
+    //将设置属性添加到gui当中，gui.add(对象，属性，最小值，最大值）
+
+    datGui.add(gui, 'amount', 0, 100)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'bevelThickness', 0, 12)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'bevelSize', 0, 6)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'bevelSegments', 0, 6)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'bevelEnabled')
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'curveSegments', 0, 10)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'steps', 0, 10)
+        .onChange(gui.asGeom);
+
+    // 将模型添加到场景当中
+    scene.add(shape);
 }
 
 
@@ -230,7 +271,15 @@ function generatePoints(segments, phiStart, phiLength) {
 
 function createMesh(geom) {
 
-    var meshMaterial = new THREE.MeshNormalMaterial();
+    //设置当前的模型矩阵沿y轴负方向偏移20
+    geom.applyMatrix(new THREE.Matrix4()
+        .makeTranslation(0, -20, 0));
+
+    var meshMaterial = new THREE.MeshNormalMaterial({
+        flatShading: THREE.FlatShading,
+        transparent: true,
+        opacity: 0.7
+    });
     meshMaterial.side = THREE.BothSide; //将材质设置成里面都可见
     var wireFrameMat = new THREE.MeshBasicMaterial();
     wireFrameMat.wireframe = true; //把材质渲染成线框
@@ -276,4 +325,3 @@ function drawShape() {
     shape.holes.push(hole3);
     return shape;
 }
-
