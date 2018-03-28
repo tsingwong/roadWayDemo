@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 13:23:54
+ * @Last Modified time: 2018-03-28 13:33:03
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -101,7 +101,7 @@ function initLight() {
  */
 function initModel() {
     let cubeGeometry = new THREE.CubeGeometry(25, 25, 25);
-    cubeMaterial = new THREE.MeshLambertMaterial({
+    cubeMaterial = new THREE.MeshPhongMaterial({
         color: '#eeeeee'
     });
     cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
@@ -110,7 +110,7 @@ function initModel() {
     scene.add(cube);
 
     let sphereGeometry = new THREE.SphereGeometry(10, 32, 32);
-    sphereMaterial = new THREE.MeshLambertMaterial({
+    sphereMaterial = new THREE.MeshPhongMaterial({
         color: 0x00ffff
     });
     sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
@@ -119,7 +119,7 @@ function initModel() {
     scene.add(sphere);
 
     let planeGeometry = new THREE.PlaneGeometry(5000, 5000, 20, 20);
-    let planeMaterial = new THREE.MeshLambertMaterial({color: 0xaaaaaa});
+    let planeMaterial = new THREE.MeshPhongMaterial({color: 0xaaaaaa});
     plane = new THREE.Mesh(planeGeometry, planeMaterial);
     plane.rotation.x = -0.5 * Math.PI;
     plane.position.y = -0;
