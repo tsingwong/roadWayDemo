@@ -2,13 +2,13 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 10:01:18
+ * @Last Modified time: 2018-03-28 10:08:23
  */
 let canvas = document.querySelector('#canvas');
 let stats;
 
 /* global THREE, Stats, Detector, dat*/
-let renderer, camera, scene, ambientLight, pointLight;
+let renderer, camera, scene, ambientLight, pointLight, directionalLight;
 
 let axisHelper, gridHelper, controls;
 
@@ -71,13 +71,25 @@ function initLight() {
     ambientLight = new THREE.AmbientLight('#111111');
     scene.add(ambientLight);
     // 点光源
-    pointLight = new THREE.PointLight(0xfffff);
-    pointLight.position.set(15, 60, 10);
-    //告诉平行光需要开启阴影投射
-    pointLight.castShadow = true;
-    scene.add(pointLight);
+    directionalLight = new THREE.DirectionalLight(0xfffff);
+    directionalLight.position.set(15, 60, 10);
 
-    let debug = new THREE.CameraHelper(pointLight.shadow.camera);
+
+    directionalLight.shadow.camera.near = 20; //产生阴影的最近距离
+    directionalLight.shadow.camera.far = 200; //产生阴影的最远距离
+    directionalLight.shadow.camera.left = -50; //产生阴影距离位置的最左边位置
+    directionalLight.shadow.camera.right = 50; //最右边
+    directionalLight.shadow.camera.top = 50; //最上边
+    directionalLight.shadow.camera.bottom = -50; //最下面
+    //这两个值决定使用多少像素生成阴影 默认512
+    directionalLight.shadow.mapSize.height = 1024;
+    directionalLight.shadow.mapSize.width = 1024;
+
+    //开启阴影投射
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+
+    let debug = new THREE.CameraHelper(directionalLight.shadow.camera);
 
     scene.add(debug);
 }
@@ -222,19 +234,21 @@ function initDatGui() {
     };
 
     let datGui = new dat.GUI();
-    datGui.addColor(gui,'ambientLight').onChange(function (e) {
-        ambientLight.color = new THREE.Color(e);
+    datGui.addColor(gui, 'ambientLight')
+        .onChange(function (e) {
+            ambientLight.color = new THREE.Color(e);
 
-    });
+        });
     datGui.add(gui, 'changeAmbient');
 
-    datGui.addColor(gui,'pointLight').onChange(function (e) {
-        pointLight.color = new THREE.Color(e);
+    datGui.addColor(gui, 'pointLight')
+        .onChange(function (e) {
+            pointLight.color = new THREE.Color(e);
 
-    });
+        });
     datGui.add(gui, 'changePoint');
-    
-    
+
+
     datGui.add(gui, 'lightY', 0, 100);
     datGui.add(gui, 'cubeX', -30, 30);
     datGui.add(gui, 'cubeY', -30, 30);
@@ -255,7 +269,7 @@ function animate() {
     stats.begin();
 
 
-    pointLight.position.y = gui.lightY;
+    directionalLight.position.y = gui.lightY;
     cube.position.set(gui.cubeX, gui.cubeY, gui.cubeZ);
 
     render();
