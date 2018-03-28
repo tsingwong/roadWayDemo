@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 17:15:41
+ * @Last Modified time: 2018-03-28 18:46:54
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -17,6 +17,8 @@ let sphere, cube, plane, line, shape;
 let sphereMaterial, cubeMaterial;
 
 let datGui, gui, settings;
+
+let spGroup, tubeMesh;
 
 // 兼容性检测
 if (!Detector.webgl) {
@@ -94,6 +96,11 @@ function initModel() {
     let mesh = createMesh(shape);
     scene.add(mesh);
 
+    // let material = new THREE.MeshPhongMaterial({color:0xff00ff});
+    // material.side = THREE.DoubleSide;//设置成两面都可见
+    // let mesh = new THREE.Mesh(shape,material);
+    // scene.add(mesh);
+
 }
 /**
  * 初始化辅助系统
@@ -134,59 +141,57 @@ function initDatGui() {
     //声明一个保存需求修改的相关数据的对象
 
     gui = {
-        // 该属性指定图形可以拉多高
-        amount: 2,
-        // 该属性指定斜角的深度
-        bevelThickness: 2,
+        // 点的总数
+        numberOfPoints: 5,
+        // 该属性指定构建这个THREE.TubeGeometry对象所用的分段数
+        segments: 64,
         // 该属性指定斜角的高度
-        bevelSize: 0.5,
-        // 如果这个属性设为true，就会有斜角
-        bevelEnabled: true,
-        // 该属性定义斜角的分段数
-        bevelSegments: 3,
-        // 该属性指定拉伸体沿深度方向分成多少段
-        curveSegments: 12,
-        // 该属性指定拉伸体沿深度方向分成多少段
-        steps: 1,
-        asGeom: function () {
-            // 删除旧的模型
-            scene.remove(shape);
-            // 创建一个新的
-            var options = {
-                amount: gui.amount,
-                bevelThickness: gui.bevelThickness,
-                bevelSize: gui.bevelSize,
-                bevelSegments: gui.bevelSegments,
-                bevelEnabled: gui.bevelEnabled,
-                curveSegments: gui.curveSegments,
-                steps: gui.steps
-            };
-            shape = createMesh(new THREE.ExtrudeGeometry(drawShape(), options));
-            // 将模型添加到场景当中
-            scene.add(shape);
+        radius: 1,
+        // 该属性指定THREE.TubeGeometry对象圆周的分段数。
+        radiusSegments: 8,
+        // 线段是否闭合
+        closed: false,
+        // 数据点
+        points: [],
+        newPoints: function () {
+            let points = [];
+            for (var i = 0; i < gui.numberOfPoints; i++) {
+                var randomX = -20 + Math.round(Math.random() * 50);
+                var randomY = -15 + Math.round(Math.random() * 40);
+                var randomZ = -20 + Math.round(Math.random() * 40);
+                points.push(new THREE.Vector3(randomX, randomY, randomZ));
+            }
+            gui.points = points;
+            gui.redraw();
+        },
+        redraw: function () {
+            //清楚掉场景中原来的模型对象
+            scene.remove(spGroup);
+            scene.remove(tubeMesh);
+
+            //重新绘制模型
+            generatePoints(gui.points, gui.segments, gui.radius, gui.radiusSegments, gui.closed);
         }
     };
     let datGui = new dat.GUI();
 
     //将设置属性添加到gui当中，gui.add(对象，属性，最小值，最大值）
+    datGui.add(gui, 'newPoints');
+    datGui.add(gui, 'numberOfPoints', 2, 15)
+        .step(1)
+        .onChange(gui.newPoints);
+    datGui.add(gui, 'segments', 0, 200)
+        .step(1)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'radius', 0, 10)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'radiusSegments', 0, 100)
+        .step(1)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'closed')
+        .onChange(gui.redraw);
 
-    datGui.add(gui, 'amount', 0, 100)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'bevelThickness', 0, 12)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'bevelSize', 0, 6)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'bevelSegments', 0, 6)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'bevelEnabled')
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'curveSegments', 0, 10)
-        .onChange(gui.asGeom);
-    datGui.add(gui, 'steps', 0, 10)
-        .onChange(gui.asGeom);
-
-    // 将模型添加到场景当中
-    scene.add(shape);
+    gui.newPoints();
 }
 
 
@@ -216,7 +221,7 @@ function draw() {
     initCamera();
     initLight();
     initAssist();
-    initModel();
+    // initModel();
     initDatGui();
     animate();
 
@@ -236,37 +241,25 @@ function onWindowResize() {
 
 //生成模型调用的方法
 
-function generatePoints(segments, phiStart, phiLength) {
-    // 随机生成一组顶点
-    var points = [];
-    var height = 5;
-    var count = 40;
-
-    for (var i = 0; i < count; i++) {
-        points.push(
-            new THREE.Vector3((Math.sin(i * 0.2) + Math.cos(i * 0.3)) * height + 12,
-                (i - count) + count / 2,
-                0));
-    }
-
-
+function generatePoints(points, segments, radius, radiusSegments, closed) {
     //创建一个存储顶点球体的对象
-    let spGroup = new THREE.Object3D();
+    spGroup = new THREE.Object3D();
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: false }); //声明顶点球体使用的纹理
     points.forEach(function (point) {
-        var spGeom = new THREE.SphereGeometry(0.2); //实例化球形几何体
-        var spMesh = new THREE.Mesh(spGeom, material); //生成网格
+        var spGeom = new THREE.SphereGeometry(3); //实例化球形几何体
+        var spMesh = new THREE.Mesh(spGeom, material);
         spMesh.position.copy(point); //将当前顶点的坐标位置赋值给当前球体
         spGroup.add(spMesh); //添加到对象当中
     });
     // 将存储顶点球体的对象添加到场景当中
     scene.add(spGroup);
 
-    // 实例化一个THREE.LatheGeometry，并设置相关的信息
-    var latheGeometry = new THREE.LatheGeometry(points, segments, phiStart, phiLength);
-    let latheMesh = createMesh(latheGeometry);
-    //添加到场景
-    // scene.add(latheMesh);
+    // THREE.CatmullRomCurve3方法可以将一组顶点生成一条平滑的曲线
+    let tubeGeometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), segments, radius, radiusSegments,
+        closed);
+    //将模型对象赋值给tubeMesh并添加到场景当中
+    tubeMesh = createMesh(tubeGeometry);
+    scene.add(tubeMesh);
 }
 
 function createMesh(geom) {
