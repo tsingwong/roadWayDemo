@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 21:44:07
+ * @Last Modified time: 2018-03-28 21:58:14
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -90,17 +90,35 @@ function initLight() {
  * 
  */
 function initModel() {
-    let material = new THREE.SpriteMaterial(new THREE.SpriteMaterial({color: '#ff0000'}));
-
-
+    let geometry = new THREE.Geometry();
+    let material = new THREE.PointsMaterial({
+        size: 4,
+        vertexColors: true,
+        color: 0xffffff
+    });
+    //循环将粒子的颜色和位置添加到网格当中
     for (var x = -5; x <= 5; x++) {
         for (var y = -5; y <= 5; y++) {
-            var sprite = new THREE.Sprite(material);
-            sprite.position.set(x * 10, y * 10, 0);
-            scene.add(sprite);
+            var particle = new THREE.Vector3(x * 10, y * 10, 0);
+            geometry.vertices.push(particle);
+            geometry.colors.push(new THREE.Color(+randomColor()));
         }
     }
-    
+    //实例化THREE.PointCloud
+    var cloud = new THREE.Points(geometry, material);
+    scene.add(cloud);
+}
+
+//随机生成颜色
+function randomColor() {
+    var arrHex = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'],
+        strHex = '0x',
+        index;
+    for (var i = 0; i < 6; i++) {
+        index = Math.round(Math.random() * 15);
+        strHex += arrHex[index];
+    }
+    return strHex;
 }
 /**
  * 初始化辅助系统
@@ -302,7 +320,7 @@ function createMesh(geom) {
 function drawShape() {
     let svgString = document.querySelector('#batman-path')
         .getAttribute('d');
-        // eslint-disable-next-line
+    // eslint-disable-next-line
     let shape = transformSVGPathExposed(svgString);
     return shape;
 }
