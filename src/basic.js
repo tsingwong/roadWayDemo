@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 19:59:34
+ * @Last Modified time: 2018-03-28 20:19:53
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -20,47 +20,12 @@ let datGui, gui, settings;
 
 let spGroup, tubeMesh;
 
+let text1, text2;
+
 // 兼容性检测
 if (!Detector.webgl) {
     Detector.addGetWebGLMessage();
 }
-
-
-//创建平面模型的方法
-plane = function (u, v) {
-    var x = u * 50;
-    var y = 0;
-    var z = v * 50;
-    return new THREE.Vector3(x, y, z);
-};
-
-//创建波浪图形的方法
-var radialWave = function (u, v) {
-    var r = 50;
-    var x = Math.sin(u) * r;
-    var z = Math.sin(v / 2) * 2 * r;
-    var y = (Math.sin(u * 4 * Math.PI) + Math.cos(v * 2 * Math.PI)) * 2.8;
-    return new THREE.Vector3(x, y, z);
-};
-
-var klein = function (u, v) {
-    u *= Math.PI;
-    v *= 2 * Math.PI;
-    u = u * 2;
-    var x, y, z;
-    if (u < Math.PI) {
-        x = 3 * Math.cos(u) * (1 + Math.sin(u)) + (2 * (1 - Math.cos(u) / 2)) * Math.cos(u) * Math.cos(v);
-        z = -8 * Math.sin(u) - 2 * (1 - Math.cos(u) / 2) * Math.sin(u) * Math.cos(v);
-    } else {
-        x = 3 * Math.cos(u) * (1 + Math.sin(u)) + (2 * (1 - Math.cos(u) / 2)) * Math.cos(v + Math.PI);
-        z = -8 * Math.sin(u);
-    }
-
-
-    y = -2 * (1 - Math.cos(u) / 2) * Math.sin(v);
-    return new THREE.Vector3(x, y, z);
-};
-
 /**
  * 初始化renderer
  * 
@@ -88,7 +53,7 @@ function initCamera() {
         0.1,
         10000
     );
-    camera.position.set(0, 0, 150);
+    camera.position.set(0, 0, 1500);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -168,18 +133,37 @@ function initAssist() {
 function initDatGui() {
     //声明一个保存需求修改的相关数据的对象
     gui = {
-        amount: 2,
+        size: 90,
+        height: 90,
         bevelThickness: 2,
         bevelSize: 0.5,
         bevelEnabled: true,
         bevelSegments: 3,
         curveSegments: 12,
         steps: 1,
+        fontName: "helvetiker",
+        fontWeight: "bold",
+        weight: "normal",
+        font: null,
+        style: "italics",
+        changeFont: function () {
+            //创建loader进行字体加载，供后面的模型使用
+            var loader = new THREE.FontLoader();
+            loader.load('../static/js/lib/' + gui.fontName + '_regular' + '.typeface.json', function (response) {
+                gui.font = response;
+                gui.asGeom();
+            });
+        },
         asGeom: function () {
             // 删除旧的模型
-            scene.remove(shape);
+            scene.remove(text1);
+            scene.remove(text2);
             // 创建一个新的
             var options = {
+                size: gui.size,
+                height: gui.height,
+                weight: gui.weight,
+                font: gui.font,
                 amount: gui.amount,
                 bevelThickness: gui.bevelThickness,
                 bevelSize: gui.bevelSize,
@@ -188,14 +172,23 @@ function initDatGui() {
                 curveSegments: gui.curveSegments,
                 steps: gui.steps
             };
-            shape = createMesh(new THREE.ExtrudeGeometry(drawShape(), options));
-            // 将模型添加到场景当中
-            scene.add(shape);
+            text1 = createMesh(new THREE.TextGeometry('Learning', options));
+            text1.position.z = -100;
+            text1.position.y = 100;
+            scene.add(text1);
+            text2 = createMesh(new THREE.TextGeometry('Three.js', options));
+            scene.add(text2);
         }
     };
     let datGui = new dat.GUI();
-    datGui.add(gui, 'amount', 0, 200)
+    datGui.add(gui, 'size', 0, 200)
         .onChange(gui.asGeom);
+    datGui.add(gui, 'height', 0, 200)
+        .onChange(gui.asGeom);
+    datGui.add(gui, 'fontName', ['gentilis', 'helvetiker', 'optimer'])
+        .onChange(gui.changeFont);
+    datGui.add(gui, 'fontWeight', ['regular', 'bold'])
+        .onChange(gui.changeFont);
     datGui.add(gui, 'bevelThickness', 0, 10)
         .onChange(gui.asGeom);
     datGui.add(gui, 'bevelSize', 0, 10)
@@ -212,7 +205,7 @@ function initDatGui() {
         .step(1)
         .onChange(gui.asGeom);
 
-    gui.asGeom();
+    gui.changeFont();
 }
 
 
@@ -242,8 +235,8 @@ function draw() {
     initCamera();
     initLight();
     initAssist();
-    initModel();
-    // initDatGui();
+    // initModel();
+    initDatGui();
     animate();
 
     window.onresize = onWindowResize;
@@ -284,6 +277,10 @@ function generatePoints(points, segments, radius, radiusSegments, closed) {
 }
 
 function createMesh(geom) {
+
+    geom.applyMatrix(new THREE.Matrix4()
+        .makeTranslation(-250, -100, 0));
+
     var meshMaterial = new THREE.MeshNormalMaterial({
         flatShading: THREE.FlatShading,
         transparent: true,
