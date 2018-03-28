@@ -2,12 +2,12 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 20:53:17
+ * @Last Modified time: 2018-03-28 21:19:06
  */
 let canvas = document.querySelector('#canvas');
 let stats;
 
-/* global THREE, Stats, Detector, dat*/
+/* global THREE, Stats, Detector, dat, ThreeBSP*/
 let renderer, camera, scene, ambientLight, pointLight, directionalLight, spotLight;
 
 let axisHelper, gridHelper, controls;
@@ -53,7 +53,7 @@ function initCamera() {
         0.1,
         10000
     );
-    camera.position.set(0, 0, 1500);
+    camera.position.set(0, 200, 500);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -90,10 +90,39 @@ function initLight() {
  * 
  */
 function initModel() {
-    let mesh = createMesh(new THREE.ParametricGeometry(THREE.ParametricGeometries.klein, 25, 25));
+    let sphereGeometry = new THREE.SphereGeometry(50, 20, 20);
+    sphere = createMesh(sphereGeometry);
 
-    scene.add(mesh);
+    let cubeGeometry = new THREE.BoxGeometry(30, 30, 30);
+    cube = createMesh(cubeGeometry);
+    cube.position.x = -50;
 
+    //生成ThreeBSP对象
+    var sphereBSP = new ThreeBSP(sphere);
+    var cubeBSP = new ThreeBSP(cube);
+
+    // 差集
+    // var resultBSP = sphereBSP.subtract(cubeBSP);
+    // 并集
+    // var resultBSP = sphereBSP.union(cubeBSP);
+    // 交集
+    var resultBSP = sphereBSP.intersect(cubeBSP);
+    
+    
+    //从BSP对象内获取到处理完后的mesh模型数据
+
+    var result = resultBSP.toMesh();
+    result.geometry.computeFaceNormals();
+    result.geometry.computeVertexNormals();
+
+    let material = new THREE.MeshPhongMaterial({ color: 0x00ffff });
+
+    result.material = material;
+
+    //将计算出来模型添加到场景当中
+    // scene.add(sphere);
+    // scene.add(cube);
+    scene.add(result);
 }
 /**
  * 初始化辅助系统
@@ -231,8 +260,8 @@ function draw() {
     initCamera();
     initLight();
     initAssist();
-    // initModel();
-    initDatGui();
+    initModel();
+    // initDatGui();
     animate();
 
     window.onresize = onWindowResize;
@@ -273,8 +302,6 @@ function generatePoints(points, segments, radius, radiusSegments, closed) {
 }
 
 function createMesh(geom) {
-    geom.center();
-    console.log(JSON.stringify(geom.boundingBox));
 
     // geom.applyMatrix(new THREE.Matrix4()
     //     .makeTranslation(-250, -100, 0));
@@ -289,7 +316,8 @@ function createMesh(geom) {
     wireFrameMat.wireframe = true; //把材质渲染成线框
 
     // 将两种材质都赋给几何体
-    var mesh = THREE.SceneUtils.createMultiMaterialObject(geom, [meshMaterial, wireFrameMat]);
+    // var mesh = THREE.SceneUtils.createMultiMaterialObject(geom, [meshMaterial, wireFrameMat]);
+    var mesh = new THREE.Mesh(geom, wireFrameMat);
     return mesh;
 }
 
