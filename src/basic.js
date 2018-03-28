@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-28 15:00:44
+ * @Last Modified time: 2018-03-28 15:45:56
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -90,7 +90,7 @@ function initLight() {
  * 
  */
 function initModel() {
-    generatePoints();
+    generatePoints(120, 2, 2 * Math.PI);
 }
 /**
  * 初始化辅助系统
@@ -192,43 +192,43 @@ function onWindowResize() {
 
 //生成模型调用的方法
 
-function generatePoints() {
+function generatePoints(segments, phiStart, phiLength) {
     // 随机生成一组顶点
     var points = [];
-    for (var i = 0; i < 20; i++) {
-        //xyz轴的坐标点的位置会随机生成在+-150以内
-        var randomX = -150 + Math.round(Math.random() * 300);
-        var randomY = -150 + Math.round(Math.random() * 300);
-        var randomZ = -150 + Math.round(Math.random() * 300);
-        //创建一个坐标点并添加到数组当中
-        points.push(new THREE.Vector3(randomX, randomY, randomZ));
+    var height = 5;
+    var count = 40;
+
+    for (var i = 0; i < count; i++) {
+        points.push(
+            new THREE.Vector3((Math.sin(i * 0.2) + Math.cos(i * 0.3)) * height + 12,
+                (i - count) + count / 2,
+                0));
     }
 
-    //声明一个存放所有点的网格对象
+
+    //创建一个存储顶点球体的对象
     let spGroup = new THREE.Object3D();
-    //声明一个网格基础材质
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: false });
-    //遍历数组生成小球点并添加到对象当中
+    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: false }); //声明顶点球体使用的纹理
     points.forEach(function (point) {
-        var spGeom = new THREE.SphereGeometry(5);
-        var spMesh = new THREE.Mesh(spGeom, material);
-        spMesh.position.copy(point); //将当前小球的位置设置为当前点的坐标
-        scene.add(spMesh);
+        var spGeom = new THREE.SphereGeometry(0.2); //实例化球形几何体
+        var spMesh = new THREE.Mesh(spGeom, material); //生成网格
+        spMesh.position.copy(point); //将当前顶点的坐标位置赋值给当前球体
+        spGroup.add(spMesh); //添加到对象当中
     });
-    // 将存放所有点的对象添加到场景当中
+    // 将存储顶点球体的对象添加到场景当中
     scene.add(spGroup);
-    // 使用这些点实例化一个THREE.ConvexGeometry几何体对象
-    var hullGeometry = new THREE.ConvexGeometry(points);
-    //生成模型
-    let hullMesh = createMesh(hullGeometry);
+
+    // 实例化一个THREE.LatheGeometry，并设置相关的信息
+    var latheGeometry = new THREE.LatheGeometry(points, segments, phiStart, phiLength);
+    let latheMesh = createMesh(latheGeometry);
     //添加到场景
-    scene.add(hullMesh);
+    // scene.add(latheMesh);
 }
 
 function createMesh(geom) {
-    // 实例化一个绿色的半透明的材质
-    var meshMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00, transparent: true, opacity: 0.2});
-    meshMaterial.side = THREE.DoubleSide; //将材质设置成正面反面都可见
+
+    var meshMaterial = new THREE.MeshNormalMaterial();
+    meshMaterial.side = THREE.BackSide; //将材质设置成里面都可见
     var wireFrameMat = new THREE.MeshBasicMaterial();
     wireFrameMat.wireframe = true; //把材质渲染成线框
 
