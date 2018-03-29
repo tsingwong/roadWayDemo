@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 16:08:33
+ * @Last Modified time: 2018-03-29 16:21:47
  */
 let stats;
 
@@ -57,7 +57,7 @@ function initRender() {
 function initCamera() {
     //设置相机（视野，显示口的宽高比，近裁剪面，远裁剪面）
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 4, 5);
+    camera.position.set(0, 40, 50);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -81,7 +81,7 @@ function initLight() {
     scene.add(new THREE.AmbientLight(0x404040));
     // 点光源
     directionalLight = new THREE.DirectionalLight('#ffffff');
-    directionalLight.position.set(0, 10, 10);
+    directionalLight.position.set(0, 0, 100);
 
 
     //开启阴影投射
@@ -93,9 +93,19 @@ function initLight() {
  * 
  */
 function initModel() {
-    let loader = new THREE.ObjectLoader();
-    loader.load('../static/js/lib/misc_chair01.json', (obj) => {
-        scene.add(obj);
+    let loader = new THREE.OBJLoader();
+    loader.load('../static/js/lib/pinecone.obj', (loadedMesh) => {
+        let material = new THREE.MeshLambertMaterial({
+            color: '#5c3a21'
+        });
+        loadedMesh.children.forEach((child) => {
+            child.material = material;
+            child.geometry.computeFaceNormals();
+            child.geometry.computeVertexNormals();
+        });
+
+        loadedMesh.scale.set(100, 100, 100);
+        scene.add(loadedMesh);
     });
 }
 
@@ -273,7 +283,7 @@ function render() {
 }
 
 function animate() {
-    // stats.begin();
+    stats.begin();
 
     render();
 
@@ -281,7 +291,7 @@ function animate() {
     // controls.update();
     requestAnimationFrame(animate);
 
-    // stats.end();
+    stats.end();
 
 }
 
