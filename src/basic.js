@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 14:35:45
+ * @Last Modified time: 2018-03-29 15:08:41
  */
 let stats;
 
@@ -59,7 +59,7 @@ function initRender() {
 function initCamera() {
     //设置相机（视野，显示口的宽高比，近裁剪面，远裁剪面）
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 40, 50);
+    camera.position.set(0, 100, 100);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -111,8 +111,10 @@ function initModel() {
     group.add(sphere);
 
     let cubeGeometry = new THREE.CubeGeometry(10, 10, 8);
-    let cubeMaterial = new THREE.MeshLambertMaterial({
-        color: '#00ffff'
+    cubeMaterial = new THREE.MeshLambertMaterial({
+        color: '#00ff00',
+        transparent: true,
+        opacity: .8
     });
 
     cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
@@ -171,97 +173,61 @@ function initAssist() {
     controls.dampingFactor = 0.25;
     // 旋转的速度
     controls.rotateSpeed = 0.35;
-    controls.autoRotate = false;
+    controls.autoRotate = true;
 
     stats = new Stats();
     stats.setMode(0);
     stats.domElement.style.position = 'absolute';
-    stats.domElement.style.left = '10px';
-    stats.domElement.style.top = '10px';
+    stats.domElement.style.left = '20px';
+    stats.domElement.style.top = '20px';
     document.body.appendChild(stats.domElement);
 }
+
+// cubeMaterial = new THREE.MeshLambertMaterial({
+//     color: '#00ff00',
+//     transparent: true,
+//     opacity: .8
+// });
 
 function initDatGui() {
     //声明一个保存需求修改的相关数据的对象
     gui = {
-        sphereX: -5,
-        sphereY: 5,
-        sphereZ: 0,
-        sphereScale: 1,
+        numberOfObject: 100,
+        combined: false,
+        redraw() {
+            let arr = [];
+            // 类似 forEach
+            scene.traverse((e) => {
+                if (e instanceof THREE.Mesh) {
+                    arr.push(e);
+                }
+            });
+            arr.forEach((value) => {
+                scene.remove(value);
+            });
 
-        cubeX: 15,
-        cubeY: 5,
-        cubeZ: -5,
-        cubeScale: 1,
-
-        groupX: 0,
-        groupY: 0,
-        groupZ: 0,
-        groupScale: 1,
-
-        grouping: false,
-        rotate: false,
+            if (gui.combined) {
+                let geometry = new THREE.Geometry();
+                for (let i = 0; i < gui.numberOfObject; i++) {
+                    let cube = addCube();
+                    cube.updateMatrix();
+                    geometry.merge(cube.geometry, cube.matrix);
+                }
+                scene.add(new THREE.Mesh(geometry, cubeMaterial));
+            } else {
+                for (let i = 0; i < gui.numberOfObject; i++) {
+                    scene.add(addCube());
+                }
+            }
+        }
     };
     let datGui = new dat.GUI();
 
-    let sphereFolder = datGui.addFolder('sphere');
-    sphereFolder.add(gui, 'sphereX', -30, 30)
-        .onChange((e) => {
-            sphere.position.x = e;
-        });
-    sphereFolder.add(gui, 'sphereY', -30, 30)
-        .onChange((e) => {
-            sphere.position.y = e;
-        });
-    sphereFolder.add(gui, 'sphereZ', -30, 30)
-        .onChange((e) => {
-            sphere.position.z = e;
-        });
-    sphereFolder.add(gui, 'sphereScale', 0, 3)
-        .onChange((e) => {
-            sphere.scale.set(e, e, e);
-        });
+    datGui.add(gui, 'numberOfObject', 0, 10000);
+    datGui.add(gui, 'combined');
+    datGui.add(gui, 'redraw');
 
-
-    let cubeFolder = datGui.addFolder('cube');
-    cubeFolder.add(gui, 'cubeX', -30, 30)
-        .onChange((e) => {
-            cube.position.x = e;
-        });
-    cubeFolder.add(gui, 'cubeY', -30, 30)
-        .onChange((e) => {
-            cube.position.y = e;
-        });
-    cubeFolder.add(gui, 'cubeZ', -30, 30)
-        .onChange((e) => {
-            cube.position.z = e;
-        });
-    cubeFolder.add(gui, 'cubeScale', 0, 3)
-        .onChange((e) => {
-            cube.scale.set(e, e, e);
-        });
-
-    let groupFolder = datGui.addFolder('group');
-    groupFolder.add(gui, 'groupX', -30, 30)
-        .onChange((e) => {
-            group.position.x = e;
-        });
-    groupFolder.add(gui, 'groupY', -30, 30)
-        .onChange((e) => {
-            group.position.y = e;
-        });
-    groupFolder.add(gui, 'groupZ', -30, 30)
-        .onChange((e) => {
-            group.position.z = e;
-        });
-    groupFolder.add(gui, 'groupScale', 0, 3)
-        .onChange((e) => {
-            group.scale.set(e, e, e);
-        });
-
-    datGui.add(gui, 'grouping');
-
-    datGui.add(gui, 'rotate');
+    gui.redraw();
 }
 
 let step = 0.02;
@@ -300,7 +266,7 @@ function draw() {
     initCamera();
     initLight();
     initAssist();
-    initModel();
+
     initDatGui();
     animate();
 
@@ -317,51 +283,21 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-function getTexture() {
-    let texture = new THREE.TextureLoader()
-        .load('../static/img/sprite-sheet.png');
-    return texture;
-}
+function addCube() {
+    let cubeSize = 1.0;
+    let cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
 
-function generateSprite() {
-    let canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 16;
+    cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cube.castShadow = true;
 
-    let context = canvas.getContext('2d');
-    let gradient = context.createRadialGradient(
-        canvas.width / 2,
-        canvas.height / 2,
-        0,
-        canvas.width / 2,
-        canvas.height / 2,
-        canvas.width / 2
+    cube.position.set(
+        -100 + Math.round(Math.random() * 200),
+        -100 + Math.round(Math.random() * 200),
+        -100 + Math.round(Math.random() * 200)
     );
-    gradient.addColorStop(0, 'rgba(255,255,255,1)');
-    gradient.addColorStop(0.2, 'rgba(0,255,255,1)');
-    gradient.addColorStop(0.4, 'rgba(0,0,64,1)');
-    gradient.addColorStop(1, 'rgba(0,0,0,1)');
-
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    let texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-    return texture;
+    return cube;
 }
 
-function createPoints(geom) {
-    let material = new THREE.PointsMaterial({
-        color: 0xffffff,
-        size: 3,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        map: generateSprite(),
-        depthTest: false,
-    });
-    let cloud = new THREE.Points(geom, material);
-    cloud.sortParticles = true;
-    return cloud;
-}
 
 function createMesh(geom) {
     let meshMaterial = new THREE.MeshNormalMaterial({});
