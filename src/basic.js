@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 08:39:39
+ * @Last Modified time: 2018-03-29 09:04:32
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -55,7 +55,7 @@ function initCamera() {
         0.1,
         10000
     );
-    camera.position.set(0, 200, 500);
+    camera.position.set(0, 50, 100);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -95,7 +95,7 @@ function initLight() {
 function initModel() {
     let geometry = new THREE.Geometry();
     let material = new THREE.PointsMaterial({
-        size: 4,
+        size: 2,
         vertexColors: true,
         color: 0xffffff
     });
@@ -161,7 +161,7 @@ function initAssist() {
 function initDatGui() {
     //声明一个保存需求修改的相关数据的对象
     gui = {
-        size: 4,
+        size: 2,
         transparent: true,
         opacity: .6,
         vertexColors: true,
@@ -197,6 +197,15 @@ function initDatGui() {
 
 
 function render() {
+    let vertices = cloud.geometry.vertices;
+    vertices.forEach((v) => {
+        v.y = v.y - (v.velocityY) * 3;
+        v.x = v.x - (v.velocityX) * .5;
+        if (v.y <= -60) v.y = 60;
+        if (v.x <= -20 || v.x >= 20) v.velocityX = v.velocityX * -1;
+    });
+    cloud.geometry.verticesNeedUpdate = true;
+
     renderer.render(scene, camera);
 }
 
@@ -285,6 +294,8 @@ function createMesh(geom) {
 
 function createParticles(size, transparent, opacity, vertexColors, sizeAttenuation, color) {
     let geom = new THREE.Geometry();
+    let texture = new THREE.TextureLoader()
+        .load('../static/img/rain.png');
     //样式化粒子的THREE.PointCloudMaterial材质
     var material = new THREE.PointsMaterial({
         size: size,
@@ -293,18 +304,21 @@ function createParticles(size, transparent, opacity, vertexColors, sizeAttenuati
         vertexColors: vertexColors,
         sizeAttenuation: sizeAttenuation,
         color: color,
-        map: getTexture(),
-        depthTest: false  //设置解决透明度有问题的情况
+        map: texture,
+        depthTest: false //设置解决透明度有问题的情况
     });
 
-    var range = 500;
+    var range = 120;
     for (var i = 0; i < 15000; i++) {
         var particle = new THREE.Vector3(
             Math.random() * range - range / 2,
             Math.random() * range - range / 2,
             Math.random() * range - range / 2);
+        particle.velocityY = 0.1 + Math.random() / 5;
+        particle.velocityX = (Math.random() - 0.5) / 3;
         geom.vertices.push(particle);
-        let color = new THREE.Color(+randomColor());
+        // let color = new THREE.Color(+randomColor());
+        let color = new THREE.Color(0xffffff);
         //.setHSL ( h, s, l ) h — 色调值在0.0和1.0之间 s — 饱和值在0.0和1.0之间 l — 亮度值在0.0和1.0之间。 使用HSL设置颜色。
         //随机当前每个粒子的亮度
         // color.setHSL(color.getHSL({ h: 0, s: 0, l: 0 })
@@ -314,6 +328,7 @@ function createParticles(size, transparent, opacity, vertexColors, sizeAttenuati
         geom.colors.push(color);
     }
     cloud = new THREE.Points(geom, material);
+    cloud.verticesNeedUpdate = true;
     scene.add(cloud);
 }
 
