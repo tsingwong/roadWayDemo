@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 15:53:34
+ * @Last Modified time: 2018-03-29 16:08:33
  */
 let stats;
 
@@ -46,7 +46,7 @@ function initRender() {
     // 开启阴影
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    // renderer.setClearColor(new THREE.Color(0xffffff));
+    renderer.setClearColor(new THREE.Color(0xffffff));
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 }
@@ -57,7 +57,7 @@ function initRender() {
 function initCamera() {
     //设置相机（视野，显示口的宽高比，近裁剪面，远裁剪面）
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 0, 300);
+    camera.position.set(0, 4, 5);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -81,7 +81,7 @@ function initLight() {
     scene.add(new THREE.AmbientLight(0x404040));
     // 点光源
     directionalLight = new THREE.DirectionalLight('#ffffff');
-    directionalLight.position.set(1, 1, 1);
+    directionalLight.position.set(0, 10, 10);
 
 
     //开启阴影投射
@@ -92,7 +92,12 @@ function initLight() {
  * 初始化模型
  * 
  */
-function initModel() {}
+function initModel() {
+    let loader = new THREE.ObjectLoader();
+    loader.load('../static/js/lib/misc_chair01.json', (obj) => {
+        scene.add(obj);
+    });
+}
 
 //随机生成颜色
 function randomColor() {
@@ -259,9 +264,9 @@ let step = 0;
 
 function render() {
 
-    if (gui.rotate) {
-        knot.rotation = step += .01;
-    }
+    // if (gui.rotate) {
+    //     knot.rotation = step += .01;
+    // }
 
     renderer.render(scene, camera);
 
@@ -287,7 +292,7 @@ function draw() {
     initLight();
     initAssist();
     initModel();
-    initDatGui();
+    // initDatGui();
     animate();
 
     window.onresize = onWindowResize;
