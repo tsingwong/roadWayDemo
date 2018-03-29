@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 09:17:30
+ * @Last Modified time: 2018-03-29 09:59:16
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -23,6 +23,11 @@ let spGroup, tubeMesh;
 let text1, text2;
 
 let cloud;
+
+let raycaster = new THREE.Raycaster();
+
+
+let mouse = new THREE.Vector2();
 
 // 兼容性检测
 if (!Detector.webgl) {
@@ -85,7 +90,7 @@ function initLight() {
 
 
     //开启阴影投射
-    directionalLight.castShadow = true; 
+    directionalLight.castShadow = true;
     scene.add(directionalLight);
 }
 /**
@@ -93,23 +98,20 @@ function initLight() {
  * 
  */
 function initModel() {
-    let geometry = new THREE.Geometry();
-    let material = new THREE.PointsMaterial({
-        size: 2,
-        vertexColors: true,
-        color: 0xffffff
-    });
-    //循环将粒子的颜色和位置添加到网格当中
-    for (var x = -5; x <= 5; x++) {
-        for (var y = -5; y <= 5; y++) {
-            var particle = new THREE.Vector3(x * 10, y * 10, 0);
-            geometry.vertices.push(particle);
-            geometry.colors.push(new THREE.Color(+randomColor()));
-        }
+    let s = 25;
+    let cubeGeometry = new THREE.CubeGeometry(s, s, s);
+    for (var i = 0; i < 3000; i++) {
+        var material = new THREE.MeshBasicMaterial({ color: +randomColor() });
+        var mesh = new THREE.Mesh(cubeGeometry, material);
+        mesh.position.x = 800 * (2.0 * Math.random() - 1.0);
+        mesh.position.y = 800 * (2.0 * Math.random() - 1.0);
+        mesh.position.z = 800 * (2.0 * Math.random() - 1.0);
+        mesh.rotation.x = Math.random() * Math.PI;
+        mesh.rotation.y = Math.random() * Math.PI;
+        mesh.rotation.z = Math.random() * Math.PI;
+        mesh.updateMatrix();
+        scene.add(mesh);
     }
-    //实例化THREE.PointCloud
-    cloud = new THREE.Points(geometry, material);
-    scene.add(cloud);
 }
 
 //随机生成颜色
@@ -133,8 +135,8 @@ function initAssist() {
     scene.add(axisHelper);
 
     // 辅助网格
-    gridHelper = new THREE.GridHelper(320, 32);
-    scene.add(gridHelper);
+    // gridHelper = new THREE.GridHelper(320, 32);
+    // scene.add(gridHelper);
 
     // let object = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 100, 0x00ffff);
     // object.position.set(400, 0, -200);
@@ -197,23 +199,26 @@ function initDatGui() {
 
 
 function render() {
-    let vertices = cloud.geometry.vertices;
-    vertices.forEach((v) => {
-        v.y = v.y - (v.velocityY);
-        v.x = v.x - (v.velocityX) * .5;
-        if (v.y <= -60) v.y = 60;
-        if (v.x <= -20 || v.x >= 20) v.velocityX = v.velocityX * -1;
-    });
-    cloud.geometry.verticesNeedUpdate = true;
-
     renderer.render(scene, camera);
 }
 
+function onMouseClick() {
+    //通过鼠标点击的位置计算出raycaster所需要的点的位置，以屏幕中心为原点，值的范围为-1到1.
+    mouse.x = (event.clientX / canvas.width) * 2 - 1;
+    mouse.y = -(event.clientY / canvas.height) * 2 + 1;
+    // 通过鼠标点的位置和当前相机的矩阵计算出raycaster
+    raycaster.setFromCamera(mouse, camera);
+    // 获取raycaster直线和所有模型相交的数组集合
+    let intersects = raycaster.intersectObjects(scene.children);
+    console.log(intersects);
+    //将所有的相交的模型的颜色设置为红色，如果只需要将第一个触发事件，那就数组的第一个模型改变颜色即可
+    for (var i = 0; i < intersects.length; i++) {
+        intersects[i].object.material.color.set(0xff0000);
+    }
+}
 
-/**
- * 支持拖动
- * 
- */
+window.addEventListener( 'click', onMouseClick, false );
+
 function animate() {
     stats.begin();
 
@@ -229,10 +234,10 @@ function draw() {
     initRender();
     initScene();
     initCamera();
-    initLight();
+    // initLight();
     initAssist();
     initModel();
-    initDatGui();
+    // initDatGui();
     animate();
 
     window.onresize = onWindowResize;
