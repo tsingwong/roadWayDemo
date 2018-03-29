@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 16:21:47
+ * @Last Modified time: 2018-03-29 16:33:57
  */
 let stats;
 
@@ -265,7 +265,7 @@ function initDatGui() {
     adminFolder.add(gui, 'exportScene');
     adminFolder.add(gui, 'clearScene');
     adminFolder.add(gui, 'importScene');
-    
+
 
     gui.redraw();
 }
@@ -375,3 +375,4 @@ function createMesh(geom) {
     let mesh = THREE.SceneUtils.createMultiMaterialObject(geom, [meshMaterial, wireFrameMat]);
     return mesh;
 }
+
