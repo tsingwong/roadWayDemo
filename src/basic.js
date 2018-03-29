@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 09:04:32
+ * @Last Modified time: 2018-03-29 09:17:30
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -81,11 +81,11 @@ function initLight() {
     scene.add(ambientLight);
     // 点光源
     directionalLight = new THREE.DirectionalLight('#ffffff');
-    directionalLight.position.set(-40, 60, -10);
+    directionalLight.position.set(1, 1, 1);
 
 
     //开启阴影投射
-    directionalLight.castShadow = true;
+    directionalLight.castShadow = true; 
     scene.add(directionalLight);
 }
 /**
@@ -199,7 +199,7 @@ function initDatGui() {
 function render() {
     let vertices = cloud.geometry.vertices;
     vertices.forEach((v) => {
-        v.y = v.y - (v.velocityY) * 3;
+        v.y = v.y - (v.velocityY);
         v.x = v.x - (v.velocityX) * .5;
         if (v.y <= -60) v.y = 60;
         if (v.x <= -20 || v.x >= 20) v.velocityX = v.velocityX * -1;
@@ -295,7 +295,7 @@ function createMesh(geom) {
 function createParticles(size, transparent, opacity, vertexColors, sizeAttenuation, color) {
     let geom = new THREE.Geometry();
     let texture = new THREE.TextureLoader()
-        .load('../static/img/rain.png');
+        .load('../static/img/snow.png');
     //样式化粒子的THREE.PointCloudMaterial材质
     var material = new THREE.PointsMaterial({
         size: size,
