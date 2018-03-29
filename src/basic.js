@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 15:08:41
+ * @Last Modified time: 2018-03-29 15:44:29
  */
 let stats;
 
@@ -23,9 +23,7 @@ let text1, text2;
 
 let cloud;
 
-let knot;
-
-let group;
+let knot, loadedMesh;
 
 let raycaster = new THREE.Raycaster();
 
@@ -59,7 +57,7 @@ function initRender() {
 function initCamera() {
     //设置相机（视野，显示口的宽高比，近裁剪面，远裁剪面）
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 100, 100);
+    camera.position.set(0, 0, 300);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -82,60 +80,19 @@ function initLight() {
     // 环境光
     scene.add(new THREE.AmbientLight(0x404040));
     // 点光源
-    pointLight = new THREE.PointLight('#ffffff');
-    pointLight.position.set(15, 50, 10);
+    directionalLight = new THREE.DirectionalLight('#ffffff');
+    directionalLight.position.set(1, 1, 1);
 
 
     //开启阴影投射
-    pointLight.castShadow = true;
-    scene.add(pointLight);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
 }
 /**
  * 初始化模型
  * 
  */
-function initModel() {
-    group = new THREE.Group();
-    scene.add(group);
-
-    let sphereGeometry = new THREE.SphereGeometry(5, 200, 200);
-    let sphereMaterial = new THREE.MeshLambertMaterial({
-        color: '#aaaaaa'
-    });
-
-    sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    sphere.position.x = -5;
-    sphere.position.y = 5;
-
-    sphere.castShadow = true;
-    group.add(sphere);
-
-    let cubeGeometry = new THREE.CubeGeometry(10, 10, 8);
-    cubeMaterial = new THREE.MeshLambertMaterial({
-        color: '#00ff00',
-        transparent: true,
-        opacity: .8
-    });
-
-    cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-    cube.position.set(15, 5, -5);
-
-    cube.castShadow = true;
-    group.add(cube);
-
-    let planeGeometry = new THREE.PlaneGeometry(100, 100);
-    let PlaneMaterial = new THREE.MeshStandardMaterial({
-        color: '#aaaaaa'
-    });
-    plane = new THREE.Mesh(planeGeometry, PlaneMaterial);
-
-    plane.rotation.x = -.5 * Math.PI;
-    plane.position.y = 0;
-
-    plane.receiveShadow = true;
-
-    scene.add(plane);
-}
+function initModel() {}
 
 //随机生成颜色
 function randomColor() {
@@ -173,74 +130,115 @@ function initAssist() {
     controls.dampingFactor = 0.25;
     // 旋转的速度
     controls.rotateSpeed = 0.35;
-    controls.autoRotate = true;
+    controls.autoRotate = false;
 
     stats = new Stats();
     stats.setMode(0);
     stats.domElement.style.position = 'absolute';
-    stats.domElement.style.left = '20px';
-    stats.domElement.style.top = '20px';
+    stats.domElement.style.left = '5px';
+    stats.domElement.style.top = '5px';
     document.body.appendChild(stats.domElement);
 }
-
-// cubeMaterial = new THREE.MeshLambertMaterial({
-//     color: '#00ff00',
-//     transparent: true,
-//     opacity: .8
-// });
 
 function initDatGui() {
     //声明一个保存需求修改的相关数据的对象
     gui = {
-        numberOfObject: 100,
-        combined: false,
-        redraw() {
-            let arr = [];
-            // 类似 forEach
-            scene.traverse((e) => {
-                if (e instanceof THREE.Mesh) {
-                    arr.push(e);
-                }
-            });
-            arr.forEach((value) => {
-                scene.remove(value);
-            });
+        // 环形结半径
+        radius: 13,
+        // 环形节弯道
+        tube: 1.7,
+        // 环形结圆周上细分线段数
+        radialSegments: 156,
+        // 环形结弯管圆周细分线段数
+        tubularSegments: 12,
+        // 控制曲线路径缠绕圈数，P 决定垂直方向的参数
+        p: 3,
+        // 控制曲线路径缠绕圈数，Q 决定垂直方向的参数
+        q: 4,
+        // 环形结高方向上的缩进
+        heightScale: 3.5,
+        asParticles: false,
+        rotate: false,
+        redraw: function () {
+            if (knot) scene.remove(knot);
+            // controls.autoRotate = gui.rotateSystem;
+            let geom = new THREE.TorusKnotGeometry(
+                gui.radius,
+                gui.tube,
+                Math.round(gui.radialSegments),
+                Math.round(gui.tubularSegments),
+                Math.round(gui.p),
+                Math.round(gui.q)
+            );
+            geom.scale(1, gui.heightScale, 1);
 
-            if (gui.combined) {
-                let geometry = new THREE.Geometry();
-                for (let i = 0; i < gui.numberOfObject; i++) {
-                    let cube = addCube();
-                    cube.updateMatrix();
-                    geometry.merge(cube.geometry, cube.matrix);
-                }
-                scene.add(new THREE.Mesh(geometry, cubeMaterial));
+            // 判断绘制模型
+            if (gui.asParticles) {
+                knot = createPoints(geom);
             } else {
-                for (let i = 0; i < gui.numberOfObject; i++) {
-                    scene.add(addCube());
-                }
+                knot = createMesh(geom);
+            }
+
+            scene.add(knot);
+        },
+        save() {
+            let result = knot.toJSON();
+            window.localStorage.setItem('knot', JSON.stringify(result));
+        },
+        load() {
+            scene.remove(loadedMesh);
+
+            let json = localStorage.getItem('knot');
+
+            if (json) {
+                let loadedGeometry = JSON.parse(json);
+                let loader = new THREE.ObjectLoader();
+
+                loadedMesh = loader.parse(loadedGeometry);
+                loadedMesh.position.x = -50;
+                scene.add(loadedMesh);
             }
         }
     };
     let datGui = new dat.GUI();
 
-    datGui.add(gui, 'numberOfObject', 0, 10000);
-    datGui.add(gui, 'combined');
-    datGui.add(gui, 'redraw');
+    datGui.add(gui, 'radius', 0, 40)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'tube', 0, 40)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'radialSegments', 0, 400)
+        .step(1)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'tubularSegments', 1, 20)
+        .step(1)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'p', 1, 10)
+        .step(1)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'q', 1, 15)
+        .step(1)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'heightScale', 0, 5)
+        .step(1)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'asParticles')
+        .onChange(gui.redraw);
+    datGui.add(gui, 'rotate')
+        .onChange(gui.redraw);
+
+    let loadFolder = datGui.addFolder('S/L');
+    loadFolder.add(gui, 'save');
+    loadFolder.add(gui, 'load');
 
     gui.redraw();
 }
 
-let step = 0.02;
+let step = 0;
 
 function render() {
 
     if (gui.rotate) {
-        if (gui.grouping) {
-            group.rotation.y += step;
-        } else {
-            sphere.rotation.y += step;
-            cube.rotation.y += step;
-        }
+        knot.rotation = step += .01;
     }
 
     renderer.render(scene, camera);
@@ -248,15 +246,15 @@ function render() {
 }
 
 function animate() {
-    stats.begin();
+    // stats.begin();
 
     render();
 
 
-    controls.update();
+    // controls.update();
     requestAnimationFrame(animate);
 
-    stats.end();
+    // stats.end();
 
 }
 
@@ -266,7 +264,7 @@ function draw() {
     initCamera();
     initLight();
     initAssist();
-
+    initModel();
     initDatGui();
     animate();
 
@@ -283,21 +281,51 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-function addCube() {
-    let cubeSize = 1.0;
-    let cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-
-    cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-    cube.castShadow = true;
-
-    cube.position.set(
-        -100 + Math.round(Math.random() * 200),
-        -100 + Math.round(Math.random() * 200),
-        -100 + Math.round(Math.random() * 200)
-    );
-    return cube;
+function getTexture() {
+    let texture = new THREE.TextureLoader()
+        .load('../static/img/sprite-sheet.png');
+    return texture;
 }
 
+function generateSprite() {
+    let canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 16;
+
+    let context = canvas.getContext('2d');
+    let gradient = context.createRadialGradient(
+        canvas.width / 2,
+        canvas.height / 2,
+        0,
+        canvas.width / 2,
+        canvas.height / 2,
+        canvas.width / 2
+    );
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.2, 'rgba(0,255,255,1)');
+    gradient.addColorStop(0.4, 'rgba(0,0,64,1)');
+    gradient.addColorStop(1, 'rgba(0,0,0,1)');
+
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    let texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+}
+
+function createPoints(geom) {
+    let material = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 3,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        map: generateSprite(),
+        depthTest: false,
+    });
+    let cloud = new THREE.Points(geom, material);
+    cloud.sortParticles = true;
+    return cloud;
+}
 
 function createMesh(geom) {
     let meshMaterial = new THREE.MeshNormalMaterial({});
