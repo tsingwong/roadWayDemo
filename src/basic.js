@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 12:53:30
+ * @Last Modified time: 2018-03-29 13:52:53
  */
 let stats;
 
@@ -22,6 +22,8 @@ let spGroup, tubeMesh;
 let text1, text2;
 
 let cloud;
+
+let knot;
 
 let raycaster = new THREE.Raycaster();
 
@@ -54,11 +56,9 @@ function initRender() {
  */
 function initCamera() {
     //设置相机（视野，显示口的宽高比，近裁剪面，远裁剪面）
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
-    camera.position.set(0, 0, 50);
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 0, 300);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-    cameraOrtho = new THREE.OrthographicCamera(0, window.innerWidth, window.innerHeight, 0, -10, 10);
 }
 /**
  * 初始化场景
@@ -71,7 +71,6 @@ function initScene() {
     // scene.fog = new THREE.FogExp2(0xffffff,0.02);
     //场景内所有模型都使用同一种材质 
     // scene.overrideMaterial = new THREE.MeshDepthMaterial();
-    sceneOrtho = new THREE.Scene();
 }
 /**
  * 初始化光源
@@ -93,13 +92,7 @@ function initLight() {
  * 初始化模型
  * 
  */
-function initModel() {
-    //场景添加一个球型
-    let material = new THREE.MeshNormalMaterial();
-    let geom = new THREE.SphereGeometry(15, 200, 200);
-    let mesh = new THREE.Mesh(geom, material);
-    scene.add(mesh);
-}
+function initModel() {}
 
 //随机生成颜色
 function randomColor() {
@@ -150,37 +143,70 @@ function initAssist() {
 function initDatGui() {
     //声明一个保存需求修改的相关数据的对象
     gui = {
-        size: 50,
-        spirte: 0,
-        transparent: true,
-        opacity: .6,
-        color: 0xffffff,
-        rotateSystem: false,
+        // 环形结半径
+        radius: 13,
+        // 环形节弯道
+        tube: 1.7,
+        // 环形结圆周上细分线段数
+        radialSegments: 156,
+        // 环形结弯管圆周细分线段数
+        tubularSegments: 12,
+        // 控制曲线路径缠绕圈数，P 决定垂直方向的参数
+        p: 3,
+        // 控制曲线路径缠绕圈数，Q 决定垂直方向的参数
+        q: 4,
+        // 环形结高方向上的缩进
+        heightScale: 3.5,
+        asParticles: false,
+        rotate: false,
         redraw: function () {
-            sceneOrtho.children.forEach(function (child) {
-                if (child instanceof THREE.Sprite) sceneOrtho.remove(child);
-            });
-            createSprite(gui.size, gui.transparent, gui.opacity, gui.color, gui.sprite);
+            if (knot) scene.remove(knot);
             // controls.autoRotate = gui.rotateSystem;
+            let geom = new THREE.TorusKnotGeometry(
+                gui.radius,
+                gui.tube,
+                Math.round(gui.radialSegments),
+                Math.round(gui.tubularSegments),
+                Math.round(gui.p),
+                Math.round(gui.q)
+            );
+            geom.scale(1, gui.heightScale, 1);
+
+            // 判断绘制模型
+            if (gui.asParticles) {
+                knot = createPoints(geom);
+            } else {
+                knot = createMesh(geom);
+            }
+
+            scene.add(knot);
         }
     };
     let datGui = new dat.GUI();
 
-    datGui.add(gui, 'size', 0, 120)
+    datGui.add(gui, 'radius', 0, 40)
         .onChange(gui.redraw);
-    datGui.add(gui, 'spirte', 0, 4)
+    datGui.add(gui, 'tube', 0, 40)
+        .onChange(gui.redraw);
+    datGui.add(gui, 'radialSegments', 0, 400)
         .step(1)
         .onChange(gui.redraw);
-    datGui.add(gui, 'transparent')
+    datGui.add(gui, 'tubularSegments', 1, 20)
+        .step(1)
         .onChange(gui.redraw);
-    datGui.add(gui, 'opacity', 0, 1)
+    datGui.add(gui, 'p', 1, 10)
+        .step(1)
         .onChange(gui.redraw);
-
-    datGui.addColor(gui, 'color')
+    datGui.add(gui, 'q', 1, 15)
+        .step(1)
         .onChange(gui.redraw);
-    datGui.add(gui, 'rotateSystem')
+    datGui.add(gui, 'heightScale', 0, 5)
+        .step(1)
         .onChange(gui.redraw);
-
+    datGui.add(gui, 'asParticles')
+        .onChange(gui.redraw);
+    datGui.add(gui, 'rotate')
+        .onChange(gui.redraw);
     gui.redraw();
 }
 
@@ -188,25 +214,11 @@ let step = 0;
 
 function render() {
 
-    camera.position.y = Math.sin(step += 0.01) * 20;
+    if (gui.rotate) {
+        knot.rotation = step += .01;
+    }
 
-    sceneOrtho.children.forEach(function (e) {
-        if (e instanceof THREE.Sprite) {
-            // move the sprite along the bottom
-            e.position.x = e.position.x + e.velocityX;
-            if (e.position.x > window.innerWidth) {
-                e.velocityX = -5;
-                gui.sprite++;
-                e.material.map.offset.set(1 / 5 * (gui.sprite % 4), 0);
-            }
-            if (e.position.x < 0) {
-                e.velocityX = 5;
-            }
-        }
-    });
     renderer.render(scene, camera);
-    renderer.autoClear = false;
-    renderer.render(sceneOrtho, cameraOrtho);
 
 }
 
@@ -228,7 +240,7 @@ function draw() {
     initScene();
     initCamera();
     initLight();
-    // initAssist();
+    initAssist();
     initModel();
     initDatGui();
     animate();
@@ -252,25 +264,54 @@ function getTexture() {
     return texture;
 }
 
-function createSprite(size, transparent, opacity, color, spriteNumber) {
-    let spriteMaterial = new THREE.SpriteMaterial({
-        opacity: opacity,
-        color: color,
-        transparent: transparent,
-        map: getTexture(),
-        // 深度测试
+function generateSprite() {
+    let canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 16;
+
+    let context = canvas.getContext('2d');
+    let gradient = context.createRadialGradient(
+        canvas.width / 2,
+        canvas.height / 2,
+        0,
+        canvas.width / 2,
+        canvas.height / 2,
+        canvas.width / 2
+    );
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.2, 'rgba(0,255,255,1)');
+    gradient.addColorStop(0.4, 'rgba(0,0,64,1)');
+    gradient.addColorStop(1, 'rgba(0,0,0,1)');
+
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    let texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+}
+
+function createPoints(geom) {
+    let material = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 3,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        map: generateSprite(),
         depthTest: false,
-        // 使用何种混合模式
-        blending: THREE.AdditiveBlending
     });
+    let cloud = new THREE.Points(geom, material);
+    cloud.sortParticles = true;
+    return cloud;
+}
 
-    // 图片上面有五张图片，我们只需要显示其中一张
-    spriteMaterial.map.offset = new THREE.Vector2(0.2 * spriteNumber, 0);
-    spriteMaterial.map.repeat = new THREE.Vector2(1 / 5, 1);
+function createMesh(geom) {
+    let meshMaterial = new THREE.MeshNormalMaterial({});
+    meshMaterial.side = THREE.DoubleSide;
 
-    var sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(size, size, size);
-    sprite.position.set(1000, size / 2, 0);
-    sprite.velocityX = 5;
-    sceneOrtho.add(sprite);
+    let wireFrameMat = new THREE.MeshBasicMaterial();
+    wireFrameMat.wireframe = true; //把材质渲染成线框
+
+    // 将两种材质都赋给几何体
+    let mesh = THREE.SceneUtils.createMultiMaterialObject(geom, [meshMaterial, wireFrameMat]);
+    return mesh;
 }
