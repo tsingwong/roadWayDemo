@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 13:52:53
+ * @Last Modified time: 2018-03-29 14:35:45
  */
 let stats;
 
@@ -24,6 +24,8 @@ let text1, text2;
 let cloud;
 
 let knot;
+
+let group;
 
 let raycaster = new THREE.Raycaster();
 
@@ -57,7 +59,7 @@ function initRender() {
 function initCamera() {
     //设置相机（视野，显示口的宽高比，近裁剪面，远裁剪面）
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 0, 300);
+    camera.position.set(0, 40, 50);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 /**
@@ -80,19 +82,58 @@ function initLight() {
     // 环境光
     scene.add(new THREE.AmbientLight(0x404040));
     // 点光源
-    directionalLight = new THREE.DirectionalLight('#ffffff');
-    directionalLight.position.set(1, 1, 1);
+    pointLight = new THREE.PointLight('#ffffff');
+    pointLight.position.set(15, 50, 10);
 
 
     //开启阴影投射
-    directionalLight.castShadow = true;
-    scene.add(directionalLight);
+    pointLight.castShadow = true;
+    scene.add(pointLight);
 }
 /**
  * 初始化模型
  * 
  */
-function initModel() {}
+function initModel() {
+    group = new THREE.Group();
+    scene.add(group);
+
+    let sphereGeometry = new THREE.SphereGeometry(5, 200, 200);
+    let sphereMaterial = new THREE.MeshLambertMaterial({
+        color: '#aaaaaa'
+    });
+
+    sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphere.position.x = -5;
+    sphere.position.y = 5;
+
+    sphere.castShadow = true;
+    group.add(sphere);
+
+    let cubeGeometry = new THREE.CubeGeometry(10, 10, 8);
+    let cubeMaterial = new THREE.MeshLambertMaterial({
+        color: '#00ffff'
+    });
+
+    cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cube.position.set(15, 5, -5);
+
+    cube.castShadow = true;
+    group.add(cube);
+
+    let planeGeometry = new THREE.PlaneGeometry(100, 100);
+    let PlaneMaterial = new THREE.MeshStandardMaterial({
+        color: '#aaaaaa'
+    });
+    plane = new THREE.Mesh(planeGeometry, PlaneMaterial);
+
+    plane.rotation.x = -.5 * Math.PI;
+    plane.position.y = 0;
+
+    plane.receiveShadow = true;
+
+    scene.add(plane);
+}
 
 //随机生成颜色
 function randomColor() {
@@ -135,87 +176,105 @@ function initAssist() {
     stats = new Stats();
     stats.setMode(0);
     stats.domElement.style.position = 'absolute';
-    stats.domElement.style.left = '5px';
-    stats.domElement.style.top = '5px';
+    stats.domElement.style.left = '10px';
+    stats.domElement.style.top = '10px';
     document.body.appendChild(stats.domElement);
 }
 
 function initDatGui() {
     //声明一个保存需求修改的相关数据的对象
     gui = {
-        // 环形结半径
-        radius: 13,
-        // 环形节弯道
-        tube: 1.7,
-        // 环形结圆周上细分线段数
-        radialSegments: 156,
-        // 环形结弯管圆周细分线段数
-        tubularSegments: 12,
-        // 控制曲线路径缠绕圈数，P 决定垂直方向的参数
-        p: 3,
-        // 控制曲线路径缠绕圈数，Q 决定垂直方向的参数
-        q: 4,
-        // 环形结高方向上的缩进
-        heightScale: 3.5,
-        asParticles: false,
+        sphereX: -5,
+        sphereY: 5,
+        sphereZ: 0,
+        sphereScale: 1,
+
+        cubeX: 15,
+        cubeY: 5,
+        cubeZ: -5,
+        cubeScale: 1,
+
+        groupX: 0,
+        groupY: 0,
+        groupZ: 0,
+        groupScale: 1,
+
+        grouping: false,
         rotate: false,
-        redraw: function () {
-            if (knot) scene.remove(knot);
-            // controls.autoRotate = gui.rotateSystem;
-            let geom = new THREE.TorusKnotGeometry(
-                gui.radius,
-                gui.tube,
-                Math.round(gui.radialSegments),
-                Math.round(gui.tubularSegments),
-                Math.round(gui.p),
-                Math.round(gui.q)
-            );
-            geom.scale(1, gui.heightScale, 1);
-
-            // 判断绘制模型
-            if (gui.asParticles) {
-                knot = createPoints(geom);
-            } else {
-                knot = createMesh(geom);
-            }
-
-            scene.add(knot);
-        }
     };
     let datGui = new dat.GUI();
 
-    datGui.add(gui, 'radius', 0, 40)
-        .onChange(gui.redraw);
-    datGui.add(gui, 'tube', 0, 40)
-        .onChange(gui.redraw);
-    datGui.add(gui, 'radialSegments', 0, 400)
-        .step(1)
-        .onChange(gui.redraw);
-    datGui.add(gui, 'tubularSegments', 1, 20)
-        .step(1)
-        .onChange(gui.redraw);
-    datGui.add(gui, 'p', 1, 10)
-        .step(1)
-        .onChange(gui.redraw);
-    datGui.add(gui, 'q', 1, 15)
-        .step(1)
-        .onChange(gui.redraw);
-    datGui.add(gui, 'heightScale', 0, 5)
-        .step(1)
-        .onChange(gui.redraw);
-    datGui.add(gui, 'asParticles')
-        .onChange(gui.redraw);
-    datGui.add(gui, 'rotate')
-        .onChange(gui.redraw);
-    gui.redraw();
+    let sphereFolder = datGui.addFolder('sphere');
+    sphereFolder.add(gui, 'sphereX', -30, 30)
+        .onChange((e) => {
+            sphere.position.x = e;
+        });
+    sphereFolder.add(gui, 'sphereY', -30, 30)
+        .onChange((e) => {
+            sphere.position.y = e;
+        });
+    sphereFolder.add(gui, 'sphereZ', -30, 30)
+        .onChange((e) => {
+            sphere.position.z = e;
+        });
+    sphereFolder.add(gui, 'sphereScale', 0, 3)
+        .onChange((e) => {
+            sphere.scale.set(e, e, e);
+        });
+
+
+    let cubeFolder = datGui.addFolder('cube');
+    cubeFolder.add(gui, 'cubeX', -30, 30)
+        .onChange((e) => {
+            cube.position.x = e;
+        });
+    cubeFolder.add(gui, 'cubeY', -30, 30)
+        .onChange((e) => {
+            cube.position.y = e;
+        });
+    cubeFolder.add(gui, 'cubeZ', -30, 30)
+        .onChange((e) => {
+            cube.position.z = e;
+        });
+    cubeFolder.add(gui, 'cubeScale', 0, 3)
+        .onChange((e) => {
+            cube.scale.set(e, e, e);
+        });
+
+    let groupFolder = datGui.addFolder('group');
+    groupFolder.add(gui, 'groupX', -30, 30)
+        .onChange((e) => {
+            group.position.x = e;
+        });
+    groupFolder.add(gui, 'groupY', -30, 30)
+        .onChange((e) => {
+            group.position.y = e;
+        });
+    groupFolder.add(gui, 'groupZ', -30, 30)
+        .onChange((e) => {
+            group.position.z = e;
+        });
+    groupFolder.add(gui, 'groupScale', 0, 3)
+        .onChange((e) => {
+            group.scale.set(e, e, e);
+        });
+
+    datGui.add(gui, 'grouping');
+
+    datGui.add(gui, 'rotate');
 }
 
-let step = 0;
+let step = 0.02;
 
 function render() {
 
     if (gui.rotate) {
-        knot.rotation = step += .01;
+        if (gui.grouping) {
+            group.rotation.y += step;
+        } else {
+            sphere.rotation.y += step;
+            cube.rotation.y += step;
+        }
     }
 
     renderer.render(scene, camera);
@@ -223,15 +282,15 @@ function render() {
 }
 
 function animate() {
-    // stats.begin();
+    stats.begin();
 
     render();
 
 
-    // controls.update();
+    controls.update();
     requestAnimationFrame(animate);
 
-    // stats.end();
+    stats.end();
 
 }
 
