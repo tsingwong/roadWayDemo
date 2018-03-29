@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 07:51:25
+ * @Last Modified time: 2018-03-29 08:39:39
  */
 let canvas = document.querySelector('#canvas');
 let stats;
@@ -64,6 +64,7 @@ function initCamera() {
  */
 function initScene() {
     scene = new THREE.Scene();
+    renderer.setClearColor(new THREE.Color(0xffffff));
     // 雾化
     // scene.fog = new THREE.Fog(0xffffff,100,120);
     // scene.fog = new THREE.FogExp2(0xffffff,0.02);
@@ -291,22 +292,76 @@ function createParticles(size, transparent, opacity, vertexColors, sizeAttenuati
         opacity: opacity,
         vertexColors: vertexColors,
         sizeAttenuation: sizeAttenuation,
-        color: color
+        color: color,
+        map: getTexture(),
+        depthTest: false  //设置解决透明度有问题的情况
     });
 
     var range = 500;
     for (var i = 0; i < 15000; i++) {
         var particle = new THREE.Vector3(
-            Math.random() * range - range / 2, 
-            Math.random() * range - range / 2, 
+            Math.random() * range - range / 2,
+            Math.random() * range - range / 2,
             Math.random() * range - range / 2);
         geom.vertices.push(particle);
         let color = new THREE.Color(+randomColor());
         //.setHSL ( h, s, l ) h — 色调值在0.0和1.0之间 s — 饱和值在0.0和1.0之间 l — 亮度值在0.0和1.0之间。 使用HSL设置颜色。
         //随机当前每个粒子的亮度
-        color.setHSL(color.getHSL({ h: 0, s: 0, l: 0 }).h, color.getHSL({ h: 0, s: 0, l: 0 }).s, Math.random() * color.getHSL({ h: 0, s: 0, l: 0 }).l);
+        // color.setHSL(color.getHSL({ h: 0, s: 0, l: 0 })
+        //     .h, color.getHSL({ h: 0, s: 0, l: 0 })
+        //     .s, Math.random() * color.getHSL({ h: 0, s: 0, l: 0 })
+        //     .l);
         geom.colors.push(color);
     }
     cloud = new THREE.Points(geom, material);
-    scene.add(cloud); 
+    scene.add(cloud);
+}
+
+function getTexture() {
+    let canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 32;
+    let ctx = canvas.getContext('2d');
+
+    // 绘制身体
+    ctx.translate(-81, -84);
+    ctx.fillStyle = 'orange';
+    ctx.beginPath();
+    ctx.moveTo(83, 116);
+    ctx.lineTo(83, 102);
+    ctx.bezierCurveTo(83, 94, 89, 88, 97, 88);
+    ctx.bezierCurveTo(105, 88, 111, 94, 111, 102);
+    ctx.lineTo(111, 116);
+    ctx.lineTo(106.333, 111.333);
+    ctx.lineTo(101.666, 116);
+    ctx.lineTo(97, 111.333);
+    ctx.lineTo(92.333, 116);
+    ctx.lineTo(87.666, 111.333);
+    ctx.lineTo(83, 116);
+    ctx.fill();
+
+    // 绘制眼睛
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.moveTo(91, 96);
+    ctx.bezierCurveTo(88, 96, 87, 99, 87, 101);
+    ctx.bezierCurveTo(87, 103, 88, 106, 91, 106);
+    ctx.bezierCurveTo(94, 106, 95, 103, 95, 101);
+    ctx.bezierCurveTo(95, 99, 94, 96, 91, 96);
+    ctx.moveTo(103, 96);
+    ctx.bezierCurveTo(100, 96, 99, 99, 99, 101);
+    ctx.bezierCurveTo(99, 103, 100, 106, 103, 106);
+    ctx.bezierCurveTo(106, 106, 107, 103, 107, 101);
+    ctx.bezierCurveTo(107, 99, 106, 96, 103, 96);
+    ctx.fill();
+    // 绘制眼球
+    ctx.fillStyle = 'blue';
+    ctx.beginPath();
+    ctx.arc(101, 102, 2, 0, Math.PI * 2, true);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(89, 102, 2, 0, Math.PI * 2, true);
+    ctx.fill();
+    let texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    return texture;
 }
