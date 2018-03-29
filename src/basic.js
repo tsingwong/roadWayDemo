@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 15:44:29
+ * @Last Modified time: 2018-03-29 15:53:34
  */
 let stats;
 
@@ -198,6 +198,22 @@ function initDatGui() {
                 loadedMesh.position.x = -50;
                 scene.add(loadedMesh);
             }
+        },
+        exportScene() {
+            let sceneJson = JSON.stringify(scene.toJSON());
+            localStorage.setItem('scene', sceneJson);
+        },
+        clearScene() {
+            scene = new THREE.Scene();
+        },
+        importScene() {
+            let json = localStorage.getItem('scene');
+
+            if (json) {
+                let loadedGeometry = JSON.parse(json);
+                let loader = new THREE.ObjectLoader();
+                scene = loader.parse(loadedGeometry);
+            }
         }
     };
     let datGui = new dat.GUI();
@@ -229,6 +245,12 @@ function initDatGui() {
     let loadFolder = datGui.addFolder('S/L');
     loadFolder.add(gui, 'save');
     loadFolder.add(gui, 'load');
+
+    let adminFolder = datGui.addFolder('管理');
+    adminFolder.add(gui, 'exportScene');
+    adminFolder.add(gui, 'clearScene');
+    adminFolder.add(gui, 'importScene');
+    
 
     gui.redraw();
 }
