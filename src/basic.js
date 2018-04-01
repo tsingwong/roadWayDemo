@@ -2,7 +2,7 @@
  * @Author: tsingwong 
  * @Date: 2018-03-27 17:15:09 
  * @Last Modified by: tsingwong
- * @Last Modified time: 2018-03-29 16:33:57
+ * @Last Modified time: 2018-03-30 16:15:40
  */
 let stats;
 
@@ -375,4 +375,3 @@ function createMesh(geom) {
     let mesh = THREE.SceneUtils.createMultiMaterialObject(geom, [meshMaterial, wireFrameMat]);
     return mesh;
 }
-

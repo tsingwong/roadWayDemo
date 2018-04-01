@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <script src="./static/js/three.js"></script>
+
+    <script src="./static/js/lib/OrbitControls.js"></script>
+    <script>
+        /* global THREE, Stats */
+        let controls, renderer, scene, camera;
+
+        function GrannyKnot() {
+            THREE.Curve.call(this);
+        }
+
+        GrannyKnot.prototype = Object.create(THREE.Curve.prototype);
+        GrannyKnot.prototype.constructor = GrannyKnot;
+        GrannyKnot.prototype.getPoint = function (t, optionalTarget) {
+            var point = optionalTarget || new THREE.Vector3();
+
+            // t = 2 * Math.PI * t;
+
+            // var x = -0.22 * Math.cos(t) - 1.28 * Math.sin(t) - 0.44 * Math.cos(3 * t) - 0.78 * Math.sin(3 * t);
+            // var y = -0.1 * Math.cos(2 * t) - 0.27 * Math.sin(2 * t) + 0.38 * Math.cos(4 * t) + 0.46 * Math.sin(4
+            //     * t);
+            // var z = 0.7 * Math.cos(3 * t) - 0.4 * Math.sin(3 * t);
+
+            // return point.set(x, y, z)
+            //     .multiplyScalar(20);
+
+            var tx = t * 3 - 1.5;
+            var ty = Math.sin(2 * Math.PI * t);
+            var tz = 0;
+
+            return new THREE.Vector3(tx, ty, tz)
+                .multiplyScalar(20);
+        };
+
+
+
+        function init() {
+            renderer = new THREE.WebGLRenderer({
+                // 打开抗锯齿
+                antialias: true,
+            });
+            // 设置设备像素比，通常用于HiDPI设备防止模糊输出canvas
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x222222);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.set(0, 0, 500);
+
+            // 轴辅助
+            let axisHelper = new THREE.AxesHelper(550);
+            scene.add(axisHelper);
+            // 辅助网格
+            let gridHelper = new THREE.GridHelper(320, 32);
+            scene.add(gridHelper);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            // 启用阻尼惯性，更加真实的感觉
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.25;
+            // 旋转的速度
+            controls.rotateSpeed = 0.35;
+            controls.autoRotate = false;
+
+            scene.add(new THREE.AmbientLight(0x222222));
+
+            let light = new THREE.PointLight(0xffffff);
+            light.position.copy(camera.position);
+            scene.add(light);
+
+
+
+            let randomPoints = [];
+            for (let i = 0; i < 10; i++) {
+                randomPoints.push(
+                    new THREE.Vector3(
+                        (i - 4.5) * 50,
+                        THREE.Math.randFloat(-50, 50),
+                        THREE.Math.randFloat(-50, 50)
+                    )
+                );
+            }
+            let randomSpline = new THREE.CatmullRomCurve3(randomPoints);
+            randomSpline.curveType = 'catmullrom';
+            // //
+            let extrudeSettings = {
+                steps: 200,
+                bevelEnabled: false,
+                extrudePath: randomSpline
+            };
+
+            let path = new GrannyKnot();
+            let tubeGeometry = new THREE.TubeBufferGeometry(path, 100, 2, 8, false);
+            let mesh = new THREE.Mesh(tubeGeometry, new THREE.MeshLambertMaterial({ color: 0xff00ff }));
+            let wireframe = new THREE.Mesh(tubeGeometry, new THREE.MeshBasicMaterial({
+                color: 0x000000,
+                opacity: 0.3,
+                wireframe: true,
+                transparent: true
+            }));
+            mesh.add(wireframe);
+
+            // let geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            // let material2 = new THREE.MeshLambertMaterial({ color: 0xff8000, wireframe: true });
+            // let mesh = new THREE.Mesh(geometry, material2);
+            scene.add(mesh);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        init();
+        animate();
+
+
+        // class GrannyKnot extends THREE.Curve {
+        //     constructor() {
+        //         super();
+        //         THREE.Curve.call(this);
+        //     }
+        //     getPoint(t, optionalTarget) {
+        //         var point = optionalTarget || new THREE.Vector3();
+        //         t = 2 * Math.PI * t;
+        //         var x = -0.22 * Math.cos(t) - 1.28 * Math.sin(t) - 0.44 * Math.cos(3 * t) - 0.78 * Math.sin(3 *
+        //             t);
+        //         var y = -0.1 * Math.cos(2 * t) - 0.27 * Math.sin(2 * t) + 0.38 * Math.cos(4 * t) + 0.46 * Math.sin(
+        //             4
+        //             * t);
+        //         var z = 0.7 * Math.cos(3 * t) - 0.4 * Math.sin(3 * t);
+        //         return point.set(x, y, z)
+        //             .multiplyScalar(20);
+        //     }
+        // }
+
+    </script>
+</body>
+
+</html>

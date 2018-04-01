@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+
+    <script src="./static/js/three.js"></script>
+
+    <script src="./static/js/lib/OrbitControls.js"></script>
+    <script src="./static/js/stats.js"></script>
+    <script src="./static/js/lib/dat.gui.js"></script>
+    <script>
+        /* global THREE, Stats, dat */
+        let controls, renderer, scene, camera;
+
+        let stats, gui;
+
+        let geometry, mesh;
+
+        function init() {
+            renderer = new THREE.WebGLRenderer({
+                // 打开抗锯齿
+                antialias: true,
+            });
+            // 设置设备像素比，通常用于HiDPI设备防止模糊输出canvas
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x222222);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.set(0, 500, 200);
+
+            // 轴辅助
+            let axisHelper = new THREE.AxesHelper(550);
+            scene.add(axisHelper);
+            // 辅助网格
+            let gridHelper = new THREE.GridHelper(320, 32);
+            scene.add(gridHelper);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            // 启用阻尼惯性，更加真实的感觉
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.25;
+            // 旋转的速度
+            controls.rotateSpeed = 0.35;
+            controls.autoRotate = false;
+
+            stats = new Stats();
+            stats.setMode(0);
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '5px';
+            stats.domElement.style.top = '5px';
+            document.body.appendChild(stats.domElement);
+
+            gui = {
+                // arch 拱形 trapezoid 梯形
+                type: 'arch',
+                // 巷道宽
+                width: 10,
+                // 巷道高
+                height: 20,
+                // stulm 平巷 incline 斜巷 turning 拐弯
+                roadWay: 'turning',
+                tension: 0.15,
+                asGeom() {
+
+                    scene.remove(mesh);
+
+                    let outerShape = drawShape(gui.width, gui.height, gui.type);
+
+                    let innerShape = drawShape(gui.width * 0.8, gui.height * 0.9, gui.type);
+
+                    outerShape.holes.push(innerShape);
+
+
+                    let line = generateLine(gui.roadWay);
+                    // let line = [];
+
+                    // let line1 = new THREE.LineCurve3(
+                    //     new THREE.Vector3(20, 0, -20),
+                    //     new THREE.Vector3(20, 0, -10)
+                    // );
+
+                    // let line2 = new THREE.QuadraticBezierCurve3(
+                    //     new THREE.Vector3(20, 0, -100),
+                    //     new THREE.Vector3(20, 0, 0),
+                    //     new THREE.Vector3(-100, 0, 0)
+                    // );
+
+                    // let line3 = new THREE.LineCurve3(
+                    //     new THREE.Vector3(10, 0, 0),
+                    //     new THREE.Vector3(-10, 0, 0)
+                    // );
+
+                    // line.push(line1, line2, line3);
+                    // for (let i = 0; i < line.length; i++) {
+
+                    //     line[i].computeFrenetFrames(235, false);
+                    //     let extrudeSettings = {
+                    //         number: 200,
+                    //         steps: 200,
+                    //         amount: 200,
+                    //         bevelEnabled: true,
+                    //         bevelThickness: 20,
+                    //         extrudePath: line[i],
+                    //     };
+
+                    //     geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
+
+                    //     let material = new THREE.MeshLambertMaterial({ color: 0xff8000, wireframe: false });
+
+                    //     mesh = new THREE.Mesh(geometry, material);
+                    //     scene.add(mesh);
+                    // }
+
+
+                    // 曲线类型
+                    line.curveType = 'catmullrom';
+
+                    let extrudeSettings = {
+                        number: 200,
+                        steps: 200,
+                        amount: 200,
+                        bevelEnabled: true,
+                        bevelThickness: 20,
+                        extrudePath: line,
+                    };
+
+                    geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
+
+                    let material = new THREE.MeshLambertMaterial({ color: 0xff8000, wireframe: false });
+
+                    mesh = new THREE.Mesh(geometry, material);
+                    scene.add(mesh);
+                }
+            };
+
+            let datGui = new dat.GUI();
+            datGui.add(gui, 'type', ['arch', 'trapezoid'])
+                .onChange((e) => {
+                    gui.asGeom();
+                });
+            datGui.add(gui, 'width', 10, 100)
+                .step(1)
+                .onChange((e) => {
+                    gui.asGeom();
+                });
+            datGui.add(gui, 'height', 10, 100)
+                .step(1)
+                .onChange((e) => {
+                    gui.asGeom();
+                });
+            datGui.add(gui, 'tension', 0.01, 1.0)
+                .onChange((e) => {
+                    gui.asGeom();
+                });
+            datGui.add(gui, 'roadWay', ['stulm', 'incline', 'turning'])
+                .onChange((e) => {
+                    gui.asGeom();
+                });
+
+            scene.add(new THREE.AmbientLight(0x222222));
+
+            let light = new THREE.PointLight(0xffffff);
+            light.position.copy(camera.position);
+            scene.add(light);
+            gui.asGeom();
+
+        }
+
+        function animate() {
+            stats.begin();
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+            stats.end();
+        }
+
+
+        function drawShape(w, h, type = 'arch') {
+            let shape = new THREE.Shape();
+
+            if (type === 'arch') {
+                shape.moveTo(w / 2, 0);
+                for (let i = 0; i < 17; i++) {
+                    let angle = Math.PI / 16 * i;
+                    shape.lineTo(Math.cos(angle) * w / 2, Math.sin(angle) * w / 2);
+                }
+                shape.lineTo(-w / 2, -(h - w / 2));
+                shape.lineTo(w / 2, -(h - w / 2));
+                shape.lineTo(w / 2, 0);
+            } else if (type === 'trapezoid') {
+                shape.moveTo(w / 2, -h / 2);
+                shape.lineTo(2 / 5 * w, h / 2);
+                shape.lineTo(-2 / 5 * w, h / 2);
+                shape.lineTo(-w / 2, -h / 2);
+                shape.lineTo(w / 2, -h / 2);
+            }
+
+            return shape;
+        }
+
+        function generateLine(type = 'stulm') {
+            let points = [];
+            let line;
+            if (type === 'stulm') {
+                for (let i = 0; i < 10; i++) {
+                    points.push(
+                        new THREE.Vector3(
+                            i * i,
+                            0,
+                            0
+                        )
+                    );
+                }
+                line = new THREE.CatmullRomCurve3(points);
+            } else if (type === 'incline') {
+                points.push(
+                    new THREE.Vector3(-20, 0, 0),
+                    new THREE.Vector3(20, 0, 0),
+                    new THREE.Vector3(30, 0, 0),
+                    new THREE.Vector3(45, 30, 0),
+                    new THREE.Vector3(60, 60, 0),
+                    new THREE.Vector3(80, 60, 0),
+                    new THREE.Vector3(100, 60, 0)
+                );
+                line = new THREE.CatmullRomCurve3(points);
+            } else if (type === 'turning') {
+                points.push(
+                    new THREE.Vector3(-20, 0, 0),
+                    new THREE.Vector3(20, 0, 0),
+                    new THREE.Vector3(30, 0, 0),
+                    new THREE.Vector3(45, 0, 60),
+                    new THREE.Vector3(60, 0, 60),
+                    new THREE.Vector3(80, 0, 60),
+                    new THREE.Vector3(100, 0, 60)
+                );
+                line = new THREE.CatmullRomCurve3(points);
+
+            }
+
+            // 曲线类型
+            line.curveType = 'catmullrom';
+            line.tension = gui.tension;
+            return line;
+        }
+
+        init();
+        animate();
+
+    </script>
+</body>
+
+</html>
