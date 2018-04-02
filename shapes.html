@@ -36,7 +36,7 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x222222);
 
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 2000);
             camera.position.set(0, 500, 200);
 
             // 轴辅助
@@ -63,81 +63,69 @@
 
             gui = {
                 // arch 拱形 trapezoid 梯形
-                type: 'arch',
+                "type": 'arch',
                 // 巷道宽
                 width: 10,
                 // 巷道高
                 height: 20,
                 // stulm 平巷 incline 斜巷 turning 拐弯
-                roadWay: 'turning',
-                tension: 0.15,
+                roadWay: 'stulm',
+                // catmullrom bezier contour
+                arithmetic: 'catmullrom',
+                tension: 0.05,
+                wireframe: false,
                 asGeom() {
 
-                    scene.remove(mesh);
+                    let arr = [];
 
-                    let outerShape = drawShape(gui.width, gui.height, gui.type);
+                    scene.traverse(function (e) {
 
-                    let innerShape = drawShape(gui.width * 0.8, gui.height * 0.9, gui.type);
+                        if (e instanceof THREE.Mesh) arr.push(e);
 
-                    outerShape.holes.push(innerShape);
+                    });
 
 
-                    let line = generateLine(gui.roadWay);
-                    // let line = [];
+
+                    arr.forEach(function (value) {
+
+                        scene.remove(value);
+
+                    });
+
+
+                    // let line = new THREE.CurvePath();
 
                     // let line1 = new THREE.LineCurve3(
-                    //     new THREE.Vector3(20, 0, -20),
+                    //     new THREE.Vector3(20, 0, -40),
                     //     new THREE.Vector3(20, 0, -10)
                     // );
 
                     // let line2 = new THREE.QuadraticBezierCurve3(
-                    //     new THREE.Vector3(20, 0, -100),
+                    //     new THREE.Vector3(20, 0, -10),
                     //     new THREE.Vector3(20, 0, 0),
-                    //     new THREE.Vector3(-100, 0, 0)
-                    // );
-
-                    // let line3 = new THREE.LineCurve3(
-                    //     new THREE.Vector3(10, 0, 0),
                     //     new THREE.Vector3(-10, 0, 0)
                     // );
 
-                    // line.push(line1, line2, line3);
-                    // for (let i = 0; i < line.length; i++) {
+                    // let line3 = new THREE.LineCurve3(
+                    //     new THREE.Vector3(-10, 0, 0),
+                    //     new THREE.Vector3(-40, 0, 0)
+                    // );
 
-                    //     line[i].computeFrenetFrames(235, false);
-                    //     let extrudeSettings = {
-                    //         number: 200,
-                    //         steps: 200,
-                    //         amount: 200,
-                    //         bevelEnabled: true,
-                    //         bevelThickness: 20,
-                    //         extrudePath: line[i],
-                    //     };
+                    // line.add(line1);
+                    // line.add(line2);
+                    // line.add(line3);
 
-                    //     geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
 
-                    //     let material = new THREE.MeshLambertMaterial({ color: 0xff8000, wireframe: false });
-
-                    //     mesh = new THREE.Mesh(geometry, material);
-                    //     scene.add(mesh);
-                    // }
-
+                    // console.log(frames);
 
                     // 曲线类型
-                    line.curveType = 'catmullrom';
 
-                    let extrudeSettings = {
-                        number: 200,
-                        steps: 200,
-                        amount: 200,
-                        bevelEnabled: true,
-                        bevelThickness: 20,
-                        extrudePath: line,
-                    };
-
-                    geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
-
-                    let material = new THREE.MeshLambertMaterial({ color: 0xff8000, wireframe: false });
+                    // geometry .computeVertexNormals();
+                    var map = new THREE.TextureLoader()
+                        .load('./static/img/stonePattern.jpg');
+                    let geometry = generateGeometry(gui.roadWay, gui.arithmetic);
+                    let material = new THREE.MeshLambertMaterial({ wireframe: gui.wireframe, map: map });
+                    material.side = THREE.DoubleSide;
 
                     mesh = new THREE.Mesh(geometry, material);
                     scene.add(mesh);
@@ -159,11 +147,19 @@
                 .onChange((e) => {
                     gui.asGeom();
                 });
-            datGui.add(gui, 'tension', 0.01, 1.0)
+            datGui.add(gui, 'tension', 0.01, .5)
+                .onChange((e) => {
+                    gui.asGeom();
+                });
+            datGui.add(gui, 'wireframe')
                 .onChange((e) => {
                     gui.asGeom();
                 });
             datGui.add(gui, 'roadWay', ['stulm', 'incline', 'turning'])
+                .onChange((e) => {
+                    gui.asGeom();
+                });
+            datGui.add(gui, 'arithmetic', ['catmullrom', 'bezier', 'contour'])
                 .onChange((e) => {
                     gui.asGeom();
                 });
@@ -209,10 +205,12 @@
             return shape;
         }
 
-        function generateLine(type = 'stulm') {
+        function generateGeometry(type = 'stulm', arithmetic = 'catmullrom') {
             let points = [];
-            let line;
+            let line, geometry;
+
             if (type === 'stulm') {
+                points.push(new THREE.Vector3(-20, 0, 0));
                 for (let i = 0; i < 10; i++) {
                     points.push(
                         new THREE.Vector3(
@@ -223,35 +221,339 @@
                     );
                 }
                 line = new THREE.CatmullRomCurve3(points);
-            } else if (type === 'incline') {
-                points.push(
-                    new THREE.Vector3(-20, 0, 0),
-                    new THREE.Vector3(20, 0, 0),
-                    new THREE.Vector3(30, 0, 0),
-                    new THREE.Vector3(45, 30, 0),
-                    new THREE.Vector3(60, 60, 0),
-                    new THREE.Vector3(80, 60, 0),
-                    new THREE.Vector3(100, 60, 0)
-                );
-                line = new THREE.CatmullRomCurve3(points);
-            } else if (type === 'turning') {
-                points.push(
-                    new THREE.Vector3(-20, 0, 0),
-                    new THREE.Vector3(20, 0, 0),
-                    new THREE.Vector3(30, 0, 0),
-                    new THREE.Vector3(45, 0, 60),
-                    new THREE.Vector3(60, 0, 60),
-                    new THREE.Vector3(80, 0, 60),
-                    new THREE.Vector3(100, 0, 60)
-                );
-                line = new THREE.CatmullRomCurve3(points);
+                line.curveType = 'catmullrom';
+                line.tension = gui.tension;
 
+                let extrudeSettings = {
+                    number: 200,
+                    steps: 200,
+                    amount: 200,
+                    curveSegments: 200,
+                    bevelEnabled: false,
+                    bevelThickness: 20,
+                    extrudePath: line
+                };
+                let outerShape = drawShape(gui.width, gui.height, gui.type);
+
+                let innerShape = drawShape(gui.width * 0.8, gui.height * 0.9, gui.type);
+
+                outerShape.holes.push(innerShape);
+                geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
+            } else if (type === 'incline') {
+                if (arithmetic === 'catmullrom') {
+                    points.push(
+                        new THREE.Vector3(-20, 0, 0),
+                        new THREE.Vector3(20, 0, 0),
+                        new THREE.Vector3(30, 0, 0),
+                        // new THREE.Vector3(45, 30, 0),
+                        new THREE.Vector3(60, 60, 0),
+                        new THREE.Vector3(80, 60, 0),
+                        new THREE.Vector3(100, 60, 0)
+                    );
+                    line = new THREE.CatmullRomCurve3(points);
+                    line = new THREE.CatmullRomCurve3(points);
+                    line.curveType = 'catmullrom';
+                    line.tension = gui.tension;
+
+                    let extrudeSettings = {
+                        number: 200,
+                        steps: 200,
+                        amount: 200,
+                        curveSegments: 200,
+                        bevelEnabled: false,
+                        bevelThickness: 20,
+                        extrudePath: line
+                    };
+                    let outerShape = drawShape(gui.width, gui.height, gui.type);
+
+                    let innerShape = drawShape(gui.width * 0.8, gui.height * 0.9, gui.type);
+
+                    outerShape.holes.push(innerShape);
+                    geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
+                } else if (arithmetic === 'contour') {
+                    points.push(
+                        new THREE.Vector3(-20, 0, 0),
+                        new THREE.Vector3(20, 0, 0),
+                        new THREE.Vector3(30, 0, 0),
+                        // new THREE.Vector3(45, 30, 0),
+                        new THREE.Vector3(60, 60, 0),
+                        new THREE.Vector3(80, 60, 0),
+                        new THREE.Vector3(100, 60, 0)
+                    );
+                    let outerShape = drawShape(gui.width, gui.height, gui.type);
+
+                    let innerShape = drawShape(gui.width * 0.8, gui.height * 0.9, gui.type);
+
+                    outerShape.holes.push(innerShape);
+                    geometry = ProfiledContourGeometry(outerShape, points, false, type);
+
+                } else if (arithmetic === 'bezier') {
+                    let line1 = new THREE.LineCurve3(
+                        new THREE.Vector3(-20, 0, 0),
+                        new THREE.Vector3(30, 0, 0)
+                    );
+                    let line2 = new THREE.QuadraticBezierCurve3(
+                        new THREE.Vector3(30, 0, 0),
+                        new THREE.Vector3(40, 0, 0),
+                        new THREE.Vector3(45, 30, 0)
+                    );
+                    let line3 = new THREE.QuadraticBezierCurve3(
+                        new THREE.Vector3(45, 30, 0),
+                        new THREE.Vector3(50, 60, 0),
+                        new THREE.Vector3(60, 60, 0)
+                    );
+
+                    let line4 = new THREE.LineCurve3(
+                        new THREE.Vector3(60, 60, 0),
+                        new THREE.Vector3(100, 60, 0)
+                    );
+
+                    line = [];
+                    line.push(line1, line2, line3, line4);
+                    for (let i = 0; i < line.length; i++) {
+                        let extrudeSettings = {
+                            number: 200,
+                            steps: 200,
+                            amount: 200,
+                            curveSegments: 200,
+                            bevelEnabled: false,
+                            bevelThickness: 20,
+                            extrudePath: line[i]
+                        };
+                        let outerShape = drawShape(gui.width, gui.height, gui.type);
+
+                        let innerShape = drawShape(gui.width * 0.8, gui.height * 0.9, gui.type);
+
+                        outerShape.holes.push(innerShape);
+                        geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
+                        var map = new THREE.TextureLoader()
+                            .load('./static/img/stonePattern.jpg');
+                        let material = new THREE.MeshLambertMaterial({ wireframe: gui.wireframe, map: map });
+                        material.side = THREE.DoubleSide;
+
+                        mesh = new THREE.Mesh(geometry, material);
+                        scene.add(mesh);
+                        renderer.render(scene, camera);
+
+                    }
+                }
+            } else if (type === 'turning') {
+                if (arithmetic === 'catmullrom') {
+                    points.push(
+                        new THREE.Vector3(-20, 0, 0),
+                        new THREE.Vector3(20, 0, 0),
+                        new THREE.Vector3(30, 0, 0),
+                        new THREE.Vector3(45, 0, 60),
+                        new THREE.Vector3(60, 0, 60),
+                        new THREE.Vector3(80, 0, 60),
+                        new THREE.Vector3(100, 0, 60)
+                    );
+                    line = new THREE.CatmullRomCurve3(points);
+                    line.curveType = 'catmullrom';
+                    line.tension = gui.tension;
+
+                    let extrudeSettings = {
+                        number: 200,
+                        steps: 200,
+                        amount: 200,
+                        curveSegments: 200,
+                        bevelEnabled: false,
+                        bevelThickness: 20,
+                        extrudePath: line
+                    };
+                    let outerShape = drawShape(gui.width, gui.height, gui.type);
+
+                    let innerShape = drawShape(gui.width * 0.8, gui.height * 0.9, gui.type);
+
+                    outerShape.holes.push(innerShape);
+                    geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
+                } else if (arithmetic === 'contour') {
+                    points.push(
+                        new THREE.Vector3(-20, 0, 0),
+                        new THREE.Vector3(20, 0, 0),
+                        new THREE.Vector3(30, 0, 0),
+                        // new THREE.Vector3(45, 30, 0),
+                        new THREE.Vector3(60, 60, 0),
+                        new THREE.Vector3(80, 60, 0),
+                        new THREE.Vector3(100, 60, 0)
+                    );
+                    let outerShape = drawShape(gui.width, gui.height, gui.type);
+
+                    let innerShape = drawShape(gui.width * 0.8, gui.height * 0.9, gui.type);
+
+                    outerShape.holes.push(innerShape);
+                    geometry = ProfiledContourGeometry(outerShape, points, false, type);
+                    geometry.rotateX(-Math.PI * .5);
+                }
+                // else if (arithmetic === 'bezier') {
+                //     let line1 = new THREE.LineCurve3(
+                //         new THREE.Vector3(-20, 0, 0),
+                //         new THREE.Vector3(30, 0, 0)
+                //     );
+                //     let line2 = new THREE.QuadraticBezierCurve3(
+                //         new THREE.Vector3(30, 0, 0),
+                //         new THREE.Vector3(40, 0, 0),
+                //         new THREE.Vector3(45, 0, -30)
+                //     );
+                //     let line3 = new THREE.QuadraticBezierCurve3(
+                //         new THREE.Vector3(45, 0, -30),
+                //         new THREE.Vector3(50, 0, -60),
+                //         new THREE.Vector3(60, 0, -60)
+                //     );
+
+                //     let line4 = new THREE.LineCurve3(
+                //         new THREE.Vector3(60, 0, -60),
+                //         new THREE.Vector3(100, 0, -60)
+                //     );
+
+                //     line = [];
+                //     line.push(line1, line2, line3, line4);
+                //     for (let i = 0; i < line.length; i++) {
+                //         let extrudeSettings = {
+                //             number: 200,
+                //             steps: 200,
+                //             amount: 200,
+                //             curveSegments: 200,
+                //             bevelEnabled: false,
+                //             bevelThickness: 20,
+                //             extrudePath: line[i]
+                //         };
+                //         let outerShape = drawShape(gui.width, gui.height, gui.type);
+
+                //         let innerShape = drawShape(gui.width * 0.8, gui.height * 0.9, gui.type);
+
+                //         outerShape.holes.push(innerShape);
+                //         geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
+                //         if ([1, 2].indexOf(i) > -1) {
+                //             geometry.rotateX(-Math.PI * .5);
+                //             geometry.rotateY(-Math.PI * .5);
+                //             geometry.rotateZ(-Math.PI * .5);
+                //         }
+                //         var map = new THREE.TextureLoader()
+                //             .load('./static/img/stonePattern.jpg');
+                //         let material = new THREE.MeshLambertMaterial({ wireframe: false, map: map });
+                //         material.side = THREE.DoubleSide;
+
+                //         mesh = new THREE.Mesh(geometry, material);
+                //         scene.add(mesh);
+                //         renderer.render(scene, camera);
+
+                //     }
+                // }
             }
 
-            // 曲线类型
-            line.curveType = 'catmullrom';
-            line.tension = gui.tension;
-            return line;
+
+            return geometry;
+        }
+
+        function ProfiledContourGeometry(profileShape, contour, contourClosed, type) {
+
+            contourClosed = contourClosed !== undefined ? contourClosed : true;
+
+            // 同 Shape
+            let profileGeometry = new THREE.ShapeBufferGeometry(profileShape);
+
+            if (type === 'incline') {
+                profileGeometry.rotateX(Math.PI * .5);
+                profileGeometry.rotateY(Math.PI * .5);
+            } else if (type === 'turning') {
+                profileGeometry.rotateX(Math.PI * .5);
+            }
+            // profileGeometry.rotateY(Math.PI * .5);
+            let profile = profileGeometry.attributes.position;
+
+            // 类似 Array 每个元素是 32 位浮点型数据，创建后其大小不可修改 
+            let profilePoints = new Float32Array(profile.count * contour.length * 3);
+
+            for (let i = 0; i < contour.length; i++) {
+                // 向量
+                let v1 = new THREE.Vector2()
+                    .subVectors(contour[i - 1 < 0 ? contour.length - 1 : i - 1], contour[i]);
+                let v2 = new THREE.Vector2()
+                    .subVectors(contour[i + 1 === contour.length ? 0 : i + 1], contour[i]);
+                // 向量角
+                let angle = v2.angle() - v1.angle();
+                let halfAngle = angle * .5;
+
+                let hA = halfAngle;
+                let tA = v2.angle() + Math.PI * .5;
+                if (!contourClosed) {
+                    // 第一个或最后一个
+                    if (i === 0 || i === contour.length - 1) { hA = Math.PI * .5; }
+                    // 最后一个
+                    if (i === contour.length - 1) { tA = v1.angle() - Math.PI * .5; }
+                }
+
+                // 
+                let shift = Math.tan(hA - Math.PI * .5);
+                console.log(shift);
+                //  4 * 4 矩阵
+                let shiftMatrix = new THREE.Matrix4()
+                    .set(
+                        1, 0, 0, 0, -shift, 1, 0, 0,
+                        0, 0, 1, 0,
+                        0, 0, 0, 1
+                    );
+
+
+                let tempAngle = tA;
+                // 旋转矩阵
+                let rotationMatrix = new THREE.Matrix4()
+                    .set(
+                        Math.cos(tempAngle), -Math.sin(tempAngle), 0, 0,
+                        Math.sin(tempAngle), Math.cos(tempAngle), 0, 0,
+                        0, 0, 1, 0,
+                        0, 0, 0, 1
+                    );
+
+                let translationMatrix = new THREE.Matrix4()
+                    .set(
+                        1, 0, 0, contour[i].x,
+                        0, 1, 0, contour[i].y,
+                        0, 0, 1, 0,
+                        0, 0, 0, 1,
+                    );
+
+                let cloneProfile = profile.clone();
+                shiftMatrix.applyToBufferAttribute(cloneProfile);
+                rotationMatrix.applyToBufferAttribute(cloneProfile);
+                translationMatrix.applyToBufferAttribute(cloneProfile);
+
+                profilePoints.set(cloneProfile.array, cloneProfile.count * i * 3);
+            }
+
+            let fullProfileGeometry = new THREE.BufferGeometry();
+            fullProfileGeometry.addAttribute("position", new THREE.BufferAttribute(profilePoints, 3));
+            let index = [];
+
+            let lastCorner = contourClosed == false ? contour.length - 1 : contour.length;
+            for (let i = 0; i < lastCorner; i++) {
+                for (let j = 0; j < profile.count; j++) {
+                    // 当前拐点
+                    let currCorner = i;
+                    // 下一个拐点
+                    let nextCorner = i + 1 == contour.length ? 0 : i + 1;
+                    let currPoint = j;
+                    let nextPoint = j + 1 == profile.count ? 0 : j + 1;
+
+                    let a = nextPoint + profile.count * currCorner;
+                    let b = currPoint + profile.count * currCorner;
+                    let c = currPoint + profile.count * nextCorner;
+                    let d = nextPoint + profile.count * nextCorner;
+
+
+                    index.push(a, b, d);
+                    index.push(b, c, d);
+                }
+            }
+
+            console.log(index);
+            // 设置缓冲区
+            fullProfileGeometry.setIndex(index);
+            // 计算顶点法线平均面法线
+            fullProfileGeometry.computeVertexNormals();
+
+            return fullProfileGeometry;
         }
 
         init();
